@@ -1,4 +1,33 @@
+# Readme.md
+
+## About
+
+Inspired by the portals of some other regional councils, this dashboard is a small attempt to replicate some of that capability within the dash framework. 
+
+Google's Gemini AI has been use to build out the skeleton code, with further updates being added by the human part of this collaboration.
+
+The main code is separated out into six files
+
+- app.py: sets up the application
+- callback.py: handles the application responses
+- constants.py: global variables
+- data_processing.py: a helper file that handles some of the heavy lifting in the app
+- hilltop_api.py: handles all hilltop data extraction
+- layout.py: lays out structure and content of the dash application
+
+## Issues
+
+1. Production of the mapped points for measurements still relies on individual calls to hilltop for data at each site - as a result, building the map takes too long. This needs to be replaced by a single call using ```DataTable``` or ```RecentDataTable```. These methods have been built and can be found in the ```hilltop_api.py``` file. This will make the map more responsive.
+
+2. Charts and reports are yet to be built. The first report will likely be about the Jul 3rd, 2025 rainfall event
+
+3. Rainfall is not well handled yet. I need to add some aggregation options to have hourly, and daily rainfall totals shown on maps and in tables.
+
+4. And many more ...
+
 ## Important Considerations and Next Steps:
+
+Note: these notes were created by Google Gemini AI. Any use of "I" or "I've" is the AI talking.
 
 1. Initial MEASUREMENTS_FOR_MAPS_AND_DATASETS Population
 
