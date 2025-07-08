@@ -97,6 +97,7 @@ def process_map_data(selected_measurement, selected_time_period):
     Fetches and processes data for map display markers.
     Returns a list of dl.CircleMarker components.
     """
+    log_prefix = "[DP-PROCESS-MAP-DATA]"
     map_markers = []
     if not selected_measurement or not selected_time_period:
         return map_markers # Return empty if selections are incomplete
@@ -105,7 +106,9 @@ def process_map_data(selected_measurement, selected_time_period):
     if not measurement_info:
         return map_markers
 
-    print(f"[DP-PROCESS-MAP-DATA] Processing map data for {selected_measurement} in period {selected_time_period}")
+    print(f"{log_prefix} Processing map data for {selected_measurement} in period {selected_time_period}")
+    
+    print(f"{log_prefix} Measurement info: {measurement_info}")
     
     hilltop_measurement_name = measurement_info["hilltop_measurement_name"]
     sites = measurement_info["sites"]
@@ -199,7 +202,7 @@ def process_map_data(selected_measurement, selected_time_period):
                 )
 
         except Exception as e:
-            print(f"[DP-PROCESS-MAP-DATA] Error fetching data for {site_name}: {e}")
+            print(f"{log_prefix} Error fetching data for {site_name}: {e}")
             map_markers.append(
                 dl.Marker(
                     position=[lat, lon],
@@ -212,10 +215,12 @@ def process_map_data(selected_measurement, selected_time_period):
 
 def get_dataset_site_options(selected_measurement):
     """Returns site options for the dataset dropdown based on measurement type."""
+    log_prefix = "[DP-GET-DATASET-SITE-OPTIONS]"
     if not selected_measurement:
         return [], []
-    
+    print(f"{log_prefix} Fetching site options for measurement: {selected_measurement}")    
     measurement_info = MEASUREMENTS_FOR_MAPS_AND_DATASETS.get(selected_measurement)
+    print(f"{log_prefix} Measurement info: {MEASUREMENTS_FOR_MAPS_AND_DATASETS}")
     if measurement_info:
         sites = measurement_info.get("sites", [])
         options = [{'label': s['SiteName'], 'value': s['SiteName']} for s in sites]
@@ -227,6 +232,7 @@ def get_dataset_data_for_display(selected_measurement, selected_sites, start_dat
     Fetches and combines raw data for the dataset display.
     Returns combined_df and a boolean indicating if data was found.
     """
+    log_prefix = "[DP-GET-DATASET-FOR-DISPLAY]"
     all_site_data = []
 
     measurement_info = MEASUREMENTS_FOR_MAPS_AND_DATASETS.get(selected_measurement)
@@ -239,7 +245,7 @@ def get_dataset_data_for_display(selected_measurement, selected_sites, start_dat
         try:
             site_info = next((s for s in measurement_info["sites"] if s['SiteName'] == site_name), None)
             if not site_info:
-                print(f"Warning: Site '{site_name}' not found in measurement info for {selected_measurement}.")
+                print(f"{log_prefix} Warning: Site '{site_name}' not found in measurement info for {selected_measurement}.")
                 continue
 
             data_dict = fetch_data(
@@ -259,10 +265,10 @@ def get_dataset_data_for_display(selected_measurement, selected_sites, start_dat
                 df['Measurement'] = selected_measurement
                 all_site_data.append(df) # Append the processed DataFrame
             else:
-                print(f"No data for {site_name} - {hilltop_measurement_name} for period {start_date} to {end_date}")
+                print(f"{log_prefix} No data for {site_name} - {hilltop_measurement_name} for period {start_date} to {end_date}")
 
         except Exception as e:
-            print(f"[DP-GET-DATASET-FOR-DISPLAY] Error fetching data for site {site_name} in dataset: {e}")
+            print(f"{log_prefix} Error fetching data for site {site_name} in dataset: {e}")
             
     if not all_site_data:
         return pd.DataFrame(), False

@@ -149,6 +149,7 @@ def serve_quick_reference_river_flow_status_layout(flow_data_df=None, latest_flo
                                                       margin=dict(t=50, b=50, l=50, r=50)))
         # Add a horizontal threshold line at y=10
         flow_graph_figure.add_hline(y=mean_annual_flood, line_width=2, line_dash="dash", line_color="red", annotation_text="Mean annual flood", annotation_position="top right")
+        flow_graph_figure.add_hline(y=222.4, line_width=2, line_dash="dash", line_color="red", annotation_text="1:10 AEP", annotation_position="top right")
 
         table_content = html.Div(dbc.Table.from_dataframe(flow_data_df.tail(100), striped=True, bordered=True, hover=True),
                                  style={'maxHeight': '300px', 'overflowY': 'auto'})
@@ -184,6 +185,7 @@ def serve_quick_reference_waiwhakaiho_egmont_village_layout(flow_data_df=None, l
                                                       margin=dict(t=50, b=50, l=50, r=50)))
         # Add a horizontal threshold line at y=10
         flow_graph_figure.add_hline(y=mean_annual_flood, line_width=2, line_dash="dash", line_color="red", annotation_text="Mean annual flood", annotation_position="top right")
+        flow_graph_figure.add_hline(y=426.16, line_width=2, line_dash="dash", line_color="red", annotation_text="1:10 AEP", annotation_position="top right")
 
         table_content = html.Div(dbc.Table.from_dataframe(flow_data_df.tail(100), striped=True, bordered=True, hover=True),
                                  style={'maxHeight': '300px', 'overflowY': 'auto'})

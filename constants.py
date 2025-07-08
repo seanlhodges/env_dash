@@ -1,11 +1,14 @@
 # constants.py
-
+from hilltoppy import Hilltop
 import dash_bootstrap_components as dbc
 from datetime import datetime, timedelta
 
 # --- Hilltop API Configuration ---
 TRC_HILLTOP_BASE_URL = 'https://extranet.trc.govt.nz/getdata/' 
-TRC_HILLTOP_HTS_FILE = 'default.hts' # Or 'boo.hts' if that's the correct one
+TRC_HILLTOP_HTS_FILE = 'boo.hts' # Or 'boo.hts' if that's the correct one
+BASE = f"{TRC_HILLTOP_BASE_URL}{TRC_HILLTOP_HTS_FILE}"
+
+DF_SITES = Hilltop(TRC_HILLTOP_BASE_URL, TRC_HILLTOP_HTS_FILE).get_site_list(location='LatLong').dropna()
 
 # --- App Styling ---
 SIDEBAR_STYLE = {
