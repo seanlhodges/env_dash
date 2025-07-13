@@ -108,7 +108,8 @@ def register_callbacks(app):
     @app.callback(
         Output('map-time-period-dropdown', 'options'),
         Output('map-time-period-dropdown', 'value'),
-        Input('map-measurement-dropdown', 'value')
+        Input('map-measurement-dropdown', 'value'),
+        # prevent_initial_call=True
     )
     def update_map_time_period_options(selected_measurement):
         return get_map_time_period_options(selected_measurement)

@@ -33,14 +33,14 @@ try:
 
 
     MEASUREMENTS_FOR_MAPS_AND_DATASETS.update({
-        "Rainfall (mm)": {
-            "hilltop_measurement_name": "Rainfall",# [Rainfall]",
-            "is_incremental": True,
-            "sites": rainfall_site_data,
-            "interval": "",
-            "method": "",
-            "measures": "Rainfall,Rainfall SCADA",
-        },
+        # "Rainfall (mm)": {
+        #     "hilltop_measurement_name": "Rainfall",# [Rainfall]",
+        #     "is_incremental": True,
+        #     "sites": rainfall_site_data,
+        #     "interval": "",
+        #     "method": "",
+        #     "measures": "Rainfall,Rainfall SCADA",
+        # },
         "Hourly Rainfall (mm)": {
             "hilltop_measurement_name": "Rainfall",# [Rainfall]",
             "is_incremental": True,

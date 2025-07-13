@@ -14,6 +14,10 @@ from constants import (
     TIME_PERIOD_OPTIONS_INSTANTANEOUS
 )
 
+
+# Chose whether to see all the print statements
+verbose=False # Default is False
+
 # --- Helper to get data for Quick Reference Pages ---
 
 def get_rainfall_summary_data():
@@ -33,10 +37,12 @@ def get_rainfall_summary_data():
             df['DateTime'] = pd.to_datetime(df['DateTime'])
             return df
         else:
-            print(f"No hourly rainfall data for {site}.")
+            if verbose:
+                print(f"No hourly rainfall data for {site}.")
             return pd.DataFrame(columns=['DateTime','Rainfall (mm)'])
     except Exception as e:
-        print(f"[DP-GET-RAINFALL-SUMMARY] Error in get_rainfall_summary_data: {e}")
+        if verbose:
+            print(f"[DP-GET-RAINFALL-SUMMARY] Error in get_rainfall_summary_data: {e}")
         return pd.DataFrame(columns=['DateTime','Rainfall (mm)'])
 
 def get_flow_status_data(sitename="Patea at Skinner Rd"):
@@ -75,9 +81,11 @@ def get_flow_status_data(sitename="Patea at Skinner Rd"):
                     else: flow_status_text = "Normal"
         
     except Exception as e:
-        print(f"{log_prefix} Error in get_flow_status_data: {e}")
+        if verbose:
+            print(f"{log_prefix} Error in get_flow_status_data: {e}")
 
-    print(f"{log_prefix} Flow data fetched for {site}: {len(flow_data)} records, latest value: {latest_flow_value}, status: {flow_status_text}")
+    if verbose:
+        print(f"{log_prefix} Flow data fetched for {site}: {len(flow_data)} records, latest value: {latest_flow_value}, status: {flow_status_text}")
     # Return the flow data, latest value, and status text
     return flow_data, latest_flow_value, flow_status_text, mean_annual_flood
 
@@ -231,7 +239,7 @@ def process_map_data(selected_measurement, selected_time_period):
     if not measurement_info:
         return map_markers
 
-    print(f"{log_prefix} Processing map data for {selected_measurement} in period {selected_time_period}")
+    # print(f"{log_prefix} Processing map data for {selected_measurement} in period {selected_time_period}")
     
     # print(f"{log_prefix} Measurement info: {measurement_info}")
     
@@ -375,9 +383,11 @@ def process_map_data_2(selected_measurement, selected_time_period):
     if not measurement_info:
         return map_markers
 
-    print(f"{log_prefix} Processing map data for {selected_measurement} in period {selected_time_period}")
+    if verbose:
+        print(f"{log_prefix} Processing map data for {selected_measurement} in period {selected_time_period}")
     
-    # print(f"{log_prefix} Measurement info: {measurement_info}")
+    if verbose:
+        print(f"{log_prefix} Measurement info: {measurement_info}")
     
     hilltop_measurement_name = measurement_info["hilltop_measurement_name"]
     sites = measurement_info["sites"]
@@ -391,7 +401,8 @@ def process_map_data_2(selected_measurement, selected_time_period):
 
     result = ','.join(sites['SiteName'])
     sitenames = quote(result)
-    # print(f"{log_prefix}: Site list: {sitenames}")
+    if verbose:
+        print(f"{log_prefix}: Site list: {sitenames}")
     measurements = quote(measurements)
     df = fetch_data_table_for_custom_collection(sitenames,
                                                 measurements,
@@ -400,7 +411,8 @@ def process_map_data_2(selected_measurement, selected_time_period):
                                                 method=method,
                                                 interval=interval)
     
-    print(f"{log_prefix}: Measurement name -> {hilltop_measurement_name}")
+    if verbose:
+        print(f"{log_prefix}: Measurement name -> {hilltop_measurement_name}")
     
     if hilltop_measurement_name=="Rainfall":
         df['M1'] = df['M1'].combine_first(df['M2'])
@@ -408,18 +420,21 @@ def process_map_data_2(selected_measurement, selected_time_period):
     
     df_most_recent = df.groupby('SiteName').last(numeric_only=False)['M1']
     
-    print(f"{log_prefix}: Dataframe [df_most_recent]:\n{df_most_recent.head()}")
+    if verbose:
+        print(f"{log_prefix}: Dataframe [df_most_recent]:\n{df_most_recent.head()}")
           
     if not start_date:
         return map_markers # Should not happen with valid `selected_time_period`
 
     # join Sites with the most recent value for each requested measurement for that site
     sites = pd.merge(sites, df_most_recent, on='SiteName', how='left') #.dropna()
-    print(f"{log_prefix}: Dataframe [sites]:\n{sites.head()}")
+    if verbose:
+        print(f"{log_prefix}: Dataframe [sites]:\n{sites.head()}")
     
     # Extract SiteName and most recent sensor value into a new dictionary
     sites_dict = sites.to_dict(orient='records')
-    print(f"{log_prefix}: Site dict contents:\n{sites_dict}")
+    if verbose:
+        print(f"{log_prefix}: Site dict contents:\n{sites_dict}")
 
     for item in sites_dict:
         site_name =item["SiteName"]
@@ -485,9 +500,11 @@ def get_dataset_site_options(selected_measurement):
     log_prefix = "[DP-GET-DATASET-SITE-OPTIONS]"
     if not selected_measurement:
         return [], []
-    print(f"{log_prefix} Fetching site options for measurement: {selected_measurement}")    
+    if verbose:
+        print(f"{log_prefix} Fetching site options for measurement: {selected_measurement}")    
     measurement_info = MEASUREMENTS_FOR_MAPS_AND_DATASETS.get(selected_measurement)
-    print(f"{log_prefix} Measurement info: {MEASUREMENTS_FOR_MAPS_AND_DATASETS}")
+    if verbose:
+        print(f"{log_prefix} Measurement info: {MEASUREMENTS_FOR_MAPS_AND_DATASETS}")
     if measurement_info:
         sites = measurement_info.get("sites", [])
         sites = sites.to_dict(orient='records')
@@ -518,7 +535,8 @@ def get_dataset_data_for_display(selected_measurement, selected_sites, start_dat
             # print(f"{log_prefix} {site_info}")
             
             if not site_info:
-                print(f"{log_prefix} Warning: Site '{site_name}' not found in measurement info for {selected_measurement}.")
+                if verbose:
+                    print(f"{log_prefix} Warning: Site '{site_name}' not found in measurement info for {selected_measurement}.")
                 continue
 
             df = fetch_data_table_for_custom_collection(site_name,
@@ -528,28 +546,27 @@ def get_dataset_data_for_display(selected_measurement, selected_sites, start_dat
                                             method=method,
                                             interval=interval)
             
-            print(f"{log_prefix}: Dataframe [df] -> {df.head()}")
-            # data_dict = fetch_data(
-            #     site=site_name,
-            #     measurement=hilltop_measurement_name, 
-            #     start_date=start_date, 
-            #     end_date=end_date
-            # )
-            # df = data_dict["raw_data"]
+            if verbose:
+                print(f"{log_prefix}: Dataframe [df] -> {df.head()}")
+            
             # Ensure consistent column naming after fetch_data processing
             if df is not None and not df.empty:                
                 df = df[['Time', 'M1']].rename(columns={'Time': 'DateTime', 'M1': "Value"})
-                print(f"{log_prefix}: Dataframe [df] -> {df.head()}")
+                if verbose:
+                    print(f"{log_prefix}: Dataframe [df] -> {df.head()}")
                 # df['DateTime'] = pd.to_datetime(df['DateTime'])
                 df['Measurement'] = selected_measurement
                 df['SiteName'] = site_name
-                print(f"{log_prefix}: Dataframe [df] -> {df.info()}")
+                if verbose:
+                    print(f"{log_prefix}: Dataframe [df] -> {df.info()}")
                 all_site_data.append(df) # Append the processed DataFrame
             else:
-                print(f"{log_prefix} No data for {site_name} - {hilltop_measurement_name} for period {start_date} to {end_date}")
+                if verbose:
+                    print(f"{log_prefix} No data for {site_name} - {hilltop_measurement_name} for period {start_date} to {end_date}")
 
         except Exception as e:
-            print(f"{log_prefix} Error fetching data for site {site_name} in dataset: {e}")
+            if verbose:
+                print(f"{log_prefix} Error fetching data for site {site_name} in dataset: {e}")
             
     if not all_site_data:
         return pd.DataFrame(), False
