@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 # Import custom modules
 from layout import serve_header_layout, serve_sidebar_layout, CONTENT_STYLE
 from callbacks import register_callbacks
-from hilltop_api import fetch_site_list, fetch_active_site_list
+from hilltop_api import fetch_site_list, fetch_active_site_list,fetch_site_list_collection
 from constants import MEASUREMENTS_FOR_MAPS_AND_DATASETS, DUMMY_RAINFALL_SITES, DUMMY_FLOW_SITES, DF_SITES, BASE
 
 # --- Initialize Data (moved to app.py as it's part of app startup) ---
@@ -19,37 +19,75 @@ try:
     # water_temperature_site_data = fetch_site_list(measurement="Water Temperature")# [Water temperature (Continuous)]")
     # air_temperature_site_data = fetch_site_list(measurement="Air Temperature (Continuous)")#[Air temperature (Continuous)]")
     
-    stage_site_data = fetch_active_site_list(BASE, "WebRivers", 60, DF_SITES) # [Water Level]")
+    stage_site_data = fetch_site_list_collection("WebRivers") # [Water Level]")
     flow_site_data = stage_site_data
-    rainfall_site_data = fetch_active_site_list(BASE, "WebRainfall", 60, DF_SITES)# [Rainfall]")
+    rainfall_site_data = fetch_site_list_collection("WebRainfall")# [Rainfall]")
     water_temperature_site_data = stage_site_data # [Water temperature (Continuous)]")
-    air_temperature_site_data = fetch_active_site_list(BASE, "WebAirTemp", 60, DF_SITES) #[Air temperature (Continuous)]")
+    air_temperature_site_data = fetch_site_list_collection("WebAirTemp") #[Air temperature (Continuous)]")
+
+    # stage_site_data = fetch_active_site_list(BASE, "WebRivers", 60, DF_SITES) # [Water Level]")
+    # flow_site_data = stage_site_data
+    # rainfall_site_data = fetch_active_site_list(BASE, "WebRainfall", 60, DF_SITES)# [Rainfall]")
+    # water_temperature_site_data = stage_site_data # [Water temperature (Continuous)]")
+    # air_temperature_site_data = fetch_active_site_list(BASE, "WebAirTemp", 60, DF_SITES) #[Air temperature (Continuous)]")
+
 
     MEASUREMENTS_FOR_MAPS_AND_DATASETS.update({
         "Rainfall (mm)": {
             "hilltop_measurement_name": "Rainfall",# [Rainfall]",
             "is_incremental": True,
-            "sites": rainfall_site_data
+            "sites": rainfall_site_data,
+            "interval": "",
+            "method": "",
+            "measures": "Rainfall,Rainfall SCADA",
+        },
+        "Hourly Rainfall (mm)": {
+            "hilltop_measurement_name": "Rainfall",# [Rainfall]",
+            "is_incremental": True,
+            "sites": rainfall_site_data,
+            "interval": "1 hour",
+            "method": "Total",
+            "measures": "Rainfall,Rainfall SCADA",
+        },
+        "Daily Rainfall (mm)": {
+            "hilltop_measurement_name": "Rainfall",# [Rainfall]",
+            "is_incremental": True,
+            "sites": rainfall_site_data,
+            "interval": "1 day",
+            "method": "Total",
+            "measures": "Rainfall,Rainfall SCADA",
         },
         "River Stage (m)": {
             "hilltop_measurement_name": "Stage",# [Water Level]",
             "is_incremental": False,
-            "sites": stage_site_data
+            "sites": stage_site_data,
+            "interval": "",
+            "method": "",
+            "measures": "Stage",
         },
         "River Flow (m³/s)": {
             "hilltop_measurement_name": "Flow",# [Water Level]",
             "is_incremental": False,
-            "sites": flow_site_data
+            "sites": flow_site_data,
+            "interval": "",
+            "method": "",
+            "measures": "Flow",
         },
         "Water Temperature (°C)": {
             "hilltop_measurement_name": "Water Temperature",# [Water temperature (Continuous)]",
             "is_incremental": False,
-            "sites": water_temperature_site_data
+            "sites": water_temperature_site_data,
+            "interval": "",
+            "method": "",
+            "measures": "Water Temperature (Continuous)",
         },
         "Air Temperature (°C)": {
             "hilltop_measurement_name": "Air Temperature",# [Air temperature (Continuous)]",
             "is_incremental": False,
-            "sites": air_temperature_site_data
+            "sites": air_temperature_site_data,
+            "interval": "",
+            "method": "",
+            "measures": "Air Temperature (Continuous)",
         }, # Add other measurements as needed
     })
     print("Successfully loaded site and measurement configurations.")
@@ -60,12 +98,18 @@ except Exception as e:
         "Rainfall (mm)": {
             "hilltop_measurement_name": "Rainfall [Rainfall]",
             "is_incremental": True,
-            "sites": DUMMY_RAINFALL_SITES
+            "sites": DUMMY_RAINFALL_SITES,
+            "interval": "",
+            "method": "",
+            "measures": "Rainfall",
         },
         "River Flow (m³/s)": {
             "hilltop_measurement_name": "Flow",
             "is_incremental": False,
-            "sites": DUMMY_FLOW_SITES
+            "sites": DUMMY_FLOW_SITES,
+            "interval": "",
+            "method": "",
+            "measures": "Flow",
         },
     })
 

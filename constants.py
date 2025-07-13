@@ -32,7 +32,11 @@ CONTENT_STYLE = {
 
 # --- Navigation Topics ---
 MAIN_TOPICS_WITH_SUB_TOPICS = {
-    'Quick Reference': ['Taranaki Rainfall Summary', 'River Flow Status', 'Waiwhakaiho Egmont Village','Waiwhakaiho Report','Air Quality Report'],
+    'Quick Reference': ['Taranaki Rainfall Summary', 
+                        'River Flow Status', 
+                        'Waiwhakaiho Egmont Village',
+                        'Waiwhakaiho Report',
+                        'Air Quality Report'],
     'Maps': [],
     'Datasets': [],
     'Charts': [],

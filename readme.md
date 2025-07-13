@@ -25,6 +25,10 @@ The main code is separated out into six files
 
 4. And many more ...
 
+## Immediate next steps
+
+1. Add climate station site data and most recent rainfall to the rainfall map and enable downloads of this data.
+
 ## Important Considerations and Next Steps:
 
 Note: these notes were created by Google Gemini AI. Any use of "I" or "I've" is the AI talking.

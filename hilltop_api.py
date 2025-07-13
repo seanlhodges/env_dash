@@ -20,9 +20,18 @@ def fetch_site_list(measurement="Flow"):
     print(f"{log_prefix}: {type(sites_df)} Found {len(sites_df)} sites for measurement '{measurement}'")
     # Need to add measurement from and to dates check to this list
     #  to ensure sites are active for the measurement
-    
-    
     return sites_df.to_dict(orient="records")
+
+def fetch_site_list_collection(collection="WebRivers"):
+    """Returns a list of dicts: [{name, lat, lon}]"""
+    log_prefix = "[HT-API-FETCH-SITE-LIST-COLLECTION]"
+    sites_df = ht.get_site_list(location='LatLong', collection=collection)
+    print(f"{log_prefix}: Found {len(sites_df)} sites for collection '{collection}'")
+    # Need to add measurement from and to dates check to this list
+    #  to ensure sites are active for the measurement
+        
+    return sites_df #.to_dict(orient="records")
+
 
 def fetch_measurements(site):
     """Returns list of (name, units) tuples"""
@@ -51,6 +60,9 @@ def active_measurement(df,measurement="Flow"):
         print(f"{log_prefix} No active measurements found for {measurement} at site.")
         df = pd.DataFrame(columns=["SiteName", "MeasurementName", "Units", "From", "To"])
         return
+
+def fetch_collection_list():
+    return ht.get_collection_list()
 
 
 def fetch_data(site, measurement, start_date, end_date, process_as_rainfall=False):
@@ -114,7 +126,37 @@ def fetch_data(site, measurement, start_date, end_date, process_as_rainfall=Fals
         print(f"{log_prefix} Returning raw data for {site} ({measurement}) with {df.shape[0]} rows")
         return {"raw_data": df.reset_index()}
     
+def fetch_data_by_method(site, measurement, start_date, end_date, method, interval):
+    """
+    Returns a DataFrame with time series values.
+    If process_as_rainfall is True, calculates hourly and daily totals for rainfall data.
+    """
+    log_prefix = "[HT-API-FETCH-DATA-BY-METHOD]"
+    df = ht.get_data(site, measurement, start_date, end_date, method, interval)
     
+    if df is None or df.empty:
+        print(f"[HT-API-FETCH-DATA-BY-METHOD] No data returned from Hilltop for {site}, {measurement} between {start_date} and {end_date}")
+        return pd.DataFrame(columns=["time", "value"]) # Return empty DataFrame
+
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = df.columns.get_level_values(0)  # flatten in case of multi-sensor
+    # print(df.columns)  # Debug: print columns to understand structure
+    # Rename the value column to a generic 'value' for consistency
+    # Assuming the first column after index is the value column
+    value_col_name = df.columns[0]
+    print(f"{log_prefix} Processing data for {site} - {measurement}, value column: {value_col_name}")
+    df = df.rename(columns={value_col_name: "value"})
+    
+    df = df.reset_index()
+    df = df.rename(columns={"Time": "time"}) # Ensure 'Time' column is named 'time'
+
+    # Ensure 'time' column is datetime and set as index for resampling
+    df['time'] = pd.to_datetime(df['time'])
+    df = df.set_index('time')
+
+    # return rainfall
+    print(f"{log_prefix} Returning raw data for {site} ({measurement}) with {df.shape[0]} rows")
+    return {"raw_data": df.reset_index()}
 
 
 def fetch_and_parse_hilltop_data(base_url=url,
@@ -230,11 +272,58 @@ def fetch_active_site_list(base_url=url,
     The function merges the site data with the latest readings to provide a complete view.
     The `minutes_ago` parameter allows you to specify how far back to look for data    
     """
+    log_prefix = "[HT-API-FETCH-ACTIVE-SITE-LIST]"
     df = fetch_and_parse_hilltop_data(base_url, collection, minutes_ago)
     df = get_latest_by_site(df)
     df = pd.merge(df, df_sites, on='SiteName', how='left')
+    # print(f"{log_prefix} Found {len(df)} active sites with latest readings for collection '{collection}'")
+    if df.empty:
+        # print(f"{log_prefix} No active sites found for collection '{collection}' in the last {minutes_ago} minutes.")
+        return pd.DataFrame(columns=["SiteName", "Time", "Sensor", "Latitude", "Longitude"]) 
+    # print(f"{log_prefix} Returning {df.columns} columns in '{collection}'.")
+    
+    #
     
     return df.to_dict(orient="records") #.set_index('SiteName', inplace=True)
+
+def fetch_active_sensor_site_list(sensor="Flow",
+                                    base_url=url, 
+                                    collection="WebRivers", 
+                                    minutes_ago=60, 
+                                    df_sites=df_sites):
+    """ 
+    Fetches and parses Hilltop data, returning the latest readings for each site.
+    The function merges the site data with the latest readings to provide a complete view.
+    The `minutes_ago` parameter allows you to specify how far back to look for data    
+    """
+    log_prefix = "[HT-API-FETCH-ACTIVE-SITE-LIST]"
+    df = fetch_and_parse_hilltop_data(base_url, collection, minutes_ago)
+    df = get_latest_by_site(df)
+    df = pd.merge(df, df_sites, on='SiteName', how='left')
+    print(f"{log_prefix} Found {len(df)} active sites with latest readings for collection '{collection}'")
+    if df.empty:
+        print(f"{log_prefix} No active sites found for collection '{collection}' in the last {minutes_ago} minutes.")
+        return pd.DataFrame(columns=["SiteName", "Time", "Sensor", "Latitude", "Longitude"]) 
+    print(f"{log_prefix} Returning {df.columns} columns in '{collection}'.")
+    
+    # for each sensor type, filter the DataFrame and return on the measure required
+    # Possible sensor types: Flow, Stage, Rainfall, Water Temperature, Air Temperature
+    if sensor == "Flow":
+        df = df[['SiteName', 'Time', 'Flow (m3/sec)', 'Latitude', 'Longitude']]
+    elif sensor == "Stage":
+        df = df[['SiteName', 'Time', 'Stage (m)', 'Latitude', 'Longitude']]
+    elif sensor == "Rainfall":
+        df = df[['SiteName', 'Time', 'Rainfall [Rainfall] (mm)', 'Rainfall SCADA (mm)', 'Latitude', 'Longitude']]
+    elif sensor == "Water Temperature":
+        df = df[['SiteName', 'Time', 'Water Temperature (°C)', 'Latitude', 'Longitude']]
+    elif sensor == "Air Temperature":
+        df = df[['SiteName', 'Time', 'Air Temperature (Continuous) (oC)', 'Latitude', 'Longitude']]
+    else:
+        print(f"{log_prefix} Unknown sensor type '{sensor}'. Returning empty DataFrame.")
+        return pd.DataFrame(columns=["SiteName", "Time", "Sensor", "Latitude", "Longitude"])        
+    
+    return df.to_dict(orient="records") #.set_index('SiteName', inplace=True)
+
 
 def fetch_recent_active_site_list(base_url=url, 
                            collection="WebRivers", 
@@ -248,3 +337,81 @@ def fetch_recent_active_site_list(base_url=url,
     df = pd.merge(df, df_sites, on='SiteName', how='left')
     
     return df.to_dict(orient="records") #.set_index('SiteName', inplace=True)
+
+
+
+def fetch_data_table_for_custom_collection(
+    site: str,
+    measurement: str,
+    from_date: str,
+    to_date: str,
+    method: None, #str = "Total",
+    interval: None, #str = "1 hour",
+    base_url: str = "https://extranet.trc.govt.nz/getdata/boo.hts"
+) -> pd.DataFrame:
+    """
+    Fetches data from a Hilltop DataTable REST endpoint and returns it as a pandas DataFrame.
+    
+    Parameters:
+        site (str): Site name (e.g., "Waitotara at Rimunui Station")
+        measurement (str): Comma-separated measurement names (e.g., "Rainfall,Rainfall [Rainfall]")
+        from_date (str): Start date (e.g., "4/7/2025")
+        to_date (str): End date (e.g., "12/7/2025")
+        method (str): Method type (default "Total")
+        interval (str): Interval (default "1 hour")
+        base_url (str): URL of the Hilltop .hts endpoint
+    
+    Returns:
+        pd.DataFrame: DataFrame with Time, SiteName, M1, M2 etc.
+    """
+    log_prefix = "FETCH-DATA-CUSTOM-COLLECTION"
+    params = {
+        "service": "Hilltop",
+        "request": "DataTable",
+        "site": site,
+        "measurement": measurement,
+        "from": from_date,
+        "to": to_date,
+        "method": method,
+        "interval": interval
+    }
+
+    req = (f"{base_url}?service=Hilltop&request=DataTable&site={site}"
+           f"&measurement={measurement}&from={from_date}&to={to_date}"
+           f"&method={method}&interval={interval}")
+
+    #print(f"{log_prefix}: Hilltop request:\n{req}")
+    
+    response = requests.get(req)
+    
+    #print(f"{log_prefix}: Response url:\n{response.url}")
+    
+    response.raise_for_status()
+    print(f"{log_prefix}: Response status -> {response}")
+    # print(response.text)
+    xml_content = response.text
+
+
+    root = ET.parse(StringIO(xml_content)).getroot()
+
+    # Extract all <Results> elements
+    results = []
+    for result in root.findall("Results"):
+        record = {}
+        for child in result:
+            record[child.tag] = child.text
+        results.append(record)
+
+    # Convert to DataFrame
+    df = pd.DataFrame(results)
+
+    # Optional: convert time and numeric columns
+    if "Time" in df.columns:
+        df["Time"] = pd.to_datetime(df["Time"])
+    for col in df.columns:
+        if col.startswith("M"):
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+            
+
+
+    return df

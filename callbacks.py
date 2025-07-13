@@ -10,12 +10,12 @@ from layout import (
     serve_header_layout, serve_sidebar_layout, serve_default_page_layout,
     serve_quick_reference_rainfall_summary_layout, serve_quick_reference_river_flow_status_layout, 
     serve_quick_reference_air_quality_report_layout,serve_quick_reference_waiwhakaiho_report_layout,
-    serve_map_page_layout, create_map_display,serve_quick_reference_waiwhakaiho_egmont_village_layout,
+    serve_map_page_layout,serve_quick_reference_waiwhakaiho_egmont_village_layout,
     serve_datasets_page_layout, create_dataset_display,
     serve_charts_page_layout, serve_reports_page_layout
 )
 from data_processing import (
-    get_map_time_period_options, process_map_data, 
+    get_map_time_period_options, process_map_data, process_map_data_2, 
     get_dataset_site_options, get_dataset_data_for_display,
     get_rainfall_summary_data, get_flow_status_data # NOW IMPORTED HERE
 )
@@ -113,30 +113,29 @@ def register_callbacks(app):
     def update_map_time_period_options(selected_measurement):
         return get_map_time_period_options(selected_measurement)
 
+
     @app.callback(
-        Output('map-output-container', 'children'),
-        Input('load-map-data-btn', 'n_clicks'),
-        State('map-measurement-dropdown', 'value'),
-        State('map-time-period-dropdown', 'value'),
-        prevent_initial_call=True
+        Output("marker-layer", "children"),
+        Input("map-measurement-dropdown", "value"),
+        Input("map-time-period-dropdown", "value")
     )
-    def load_map_data(n_clicks, selected_measurement, selected_time_period):
-        if not n_clicks:
-            raise dash.exceptions.PreventUpdate
-
+    def update_map_markers(selected_measurement, selected_time_period):
+        print(f"[DEBUG] Triggered with: {selected_measurement}, {selected_time_period}")
         if not selected_measurement or not selected_time_period:
-            return dbc.Alert("Select a measurement and time period, then click 'Load Map Data'.", color="info")
+            # Returning empty list clears existing markers
+            return []
 
-        if not MEASUREMENTS_FOR_MAPS_AND_DATASETS:
-             return dbc.Alert("Site and measurement data not loaded. Check Hilltop connection.", color="danger")
+        markers = process_map_data_2(selected_measurement, selected_time_period)
 
-        map_markers = process_map_data(selected_measurement, selected_time_period)
-        if not map_markers:
-            return dbc.Alert("No data or sites found for the selected criteria. Try different selections.", color="warning")
+        if not markers:
+            # Optional: add a default marker or popup for "no data"
+            print("[MAP] No markers returned.")
+            return []
 
-        return create_map_display(map_markers)
+        return markers
 
-    # --- Callbacks for Datasets Page ---
+
+    # --- Callbacks for Datasets Page ---    
     @app.callback(
         Output('dataset-site-dropdown', 'options'),
         Output('dataset-site-dropdown', 'value'),

@@ -4,11 +4,14 @@ import pandas as pd
 from datetime import datetime, timedelta
 import dash_leaflet as dl
 import dash_leaflet.express as dlx
+from urllib.parse import quote
 
-from hilltop_api import fetch_data # Your existing Hilltop API wrapper
+from hilltop_api import (fetch_data,
+                         fetch_data_table_for_custom_collection)
 from constants import (
     MEASUREMENTS_FOR_MAPS_AND_DATASETS, 
-    TIME_PERIOD_OPTIONS_INCREMENTAL, TIME_PERIOD_OPTIONS_INSTANTANEOUS
+    TIME_PERIOD_OPTIONS_INCREMENTAL, 
+    TIME_PERIOD_OPTIONS_INSTANTANEOUS
 )
 
 # --- Helper to get data for Quick Reference Pages ---
@@ -87,10 +90,132 @@ def get_map_time_period_options(selected_measurement):
         return [], None
     
     measurement_info = MEASUREMENTS_FOR_MAPS_AND_DATASETS.get(selected_measurement)
-    if measurement_info and measurement_info.get("is_incremental"):
-        return TIME_PERIOD_OPTIONS_INCREMENTAL, '24hrs'
-    else:
-        return TIME_PERIOD_OPTIONS_INSTANTANEOUS, 'latest'
+    # if measurement_info and measurement_info.get("is_incremental"):
+    #     return TIME_PERIOD_OPTIONS_INCREMENTAL, '24hrs'
+    # else:
+    return TIME_PERIOD_OPTIONS_INSTANTANEOUS, 'latest'
+
+# def x_process_map_data(selected_measurement, selected_time_period):
+#     """
+#     Fetches and processes data for map display markers.
+#     Returns a list of dl.CircleMarker components.
+#     """
+#     log_prefix = "[DP-PROCESS-MAP-DATA]"
+#     map_markers = []
+#     if not selected_measurement or not selected_time_period:
+#         return map_markers # Return empty if selections are incomplete
+
+#     measurement_info = MEASUREMENTS_FOR_MAPS_AND_DATASETS.get(selected_measurement)
+#     if not measurement_info:
+#         return map_markers
+
+#     print(f"{log_prefix} Processing map data for {selected_measurement} in period {selected_time_period}")
+    
+#     print(f"{log_prefix} Measurement info: {measurement_info}")
+    
+#     hilltop_measurement_name = measurement_info["hilltop_measurement_name"]
+#     sites = measurement_info["sites"]
+#     is_incremental = measurement_info["is_incremental"]
+
+#     print(f"{log_prefix} Using sites: {sites}")
+#     print(f"{log_prefix} Using measurement: {hilltop_measurement_name}")
+    
+#     end_date = datetime.now()
+#     start_date = None
+    
+#     if selected_time_period == 'latest':
+#         start_date = end_date - timedelta(hours=1) 
+#     elif selected_time_period == '24hrs':
+#         start_date = end_date - timedelta(days=1)
+#     elif selected_time_period == '48hrs':
+#         start_date = end_date - timedelta(days=2)
+#     elif selected_time_period == '72hrs':
+#         start_date = end_date - timedelta(days=3)
+#     elif selected_time_period == '1week':
+#         start_date = end_date - timedelta(weeks=1)
+#     elif selected_time_period == '1month':
+#         start_date = end_date - timedelta(days=30)
+
+#     if not start_date:
+#         return map_markers # Should not happen with valid `selected_time_period`
+
+#     for site in sites:
+#         site_name = site['SiteName']
+#         lat = site['Latitude']
+#         lon = site['Longitude']
+        
+#         try:
+#             data_dict = fetch_data(
+#                 site=site_name, 
+#                 measurement=hilltop_measurement_name, 
+#                 start_date=start_date.isoformat(), 
+#                 end_date=end_date.isoformat()
+#             )
+#             data_series = data_dict["raw_data"]
+#             # Rename the value column to a generic 'Value' after flattening for easier access
+#             data_series = data_series[['time', 'Value']].rename(columns={'time': 'DateTime'})
+#             data_series['DateTime'] = pd.to_datetime(data_series['DateTime'])
+#             data_series.set_index('DateTime', inplace=True)
+                
+#             if is_incremental:
+#                 if data_series is not None and not data_series.empty:
+#                     value = data_series.iloc[:, 0].sum()
+#                 else:
+#                     value = 0 
+#             else: # Instantaneous
+#                 if data_series is not None and not data_series.empty:
+#                     value = data_series.iloc[-1, 0]
+#                 else:
+#                     value = None
+            
+#             if value is not None:
+#                 color = 'green' # Default color
+#                 # Adjust color based on measurement type and value (dummy thresholds)
+#                 if selected_measurement == "Rainfall (mm)":
+#                     if value > 50: color = 'red'
+#                     elif value > 10: color = 'orange'
+#                 elif selected_measurement == "River Flow (m³/s)":
+#                     if value > 10: color = 'red'
+#                     elif value > 3: color = 'orange'
+#                 # Add more conditions for other measurements as needed
+               
+#                 popup_content = f"<b>{site_name}</b><br>{selected_measurement}: {value:.1f}"
+#                 if is_incremental:
+#                     popup_content += f" ({selected_time_period} total)"
+#                 else:
+#                     popup_content += f" (Latest)"
+
+#                 map_markers.append(
+#                     dl.CircleMarker(
+#                         center=[lat, lon],
+#                         radius=8,
+#                         color=color,
+#                         fillColor=color,
+#                         fillOpacity=0.8,
+#                         children=[dl.Popup(content=popup_content)]
+#                     )
+#                 )
+#             else: # No data for the site/period
+#                  map_markers.append(
+#                     dl.CircleMarker(
+#                         center=[lat, lon],
+#                         radius=4, 
+#                         color='grey',
+#                         fillColor='grey',
+#                         fillOpacity=0.5,
+#                         children=[dl.Popup(content=f"<b>{site_name}</b><br>No data for {selected_measurement} in selected period.")]
+#                     )
+#                 )
+
+#         except Exception as e:
+#             print(f"{log_prefix} Error fetching data for {site_name}: {e}")
+#             map_markers.append(
+#                 dl.Marker(
+#                     position=[lat, lon],
+#                     children=[dl.Popup(content=f"<b>{site_name}</b><br>Error fetching data: {e}")]
+#                 )
+#             )
+#     return map_markers
 
 def process_map_data(selected_measurement, selected_time_period):
     """
@@ -108,7 +233,7 @@ def process_map_data(selected_measurement, selected_time_period):
 
     print(f"{log_prefix} Processing map data for {selected_measurement} in period {selected_time_period}")
     
-    print(f"{log_prefix} Measurement info: {measurement_info}")
+    # print(f"{log_prefix} Measurement info: {measurement_info}")
     
     hilltop_measurement_name = measurement_info["hilltop_measurement_name"]
     sites = measurement_info["sites"]
@@ -133,83 +258,225 @@ def process_map_data(selected_measurement, selected_time_period):
     if not start_date:
         return map_markers # Should not happen with valid `selected_time_period`
 
-    for site in sites:
-        site_name = site['SiteName']
-        lat = site['Latitude']
-        lon = site['Longitude']
+    # Extract SiteName and recently measured sensor value into a new dictionary
+    if selected_measurement== "Rainfall (mm)":
+        sensor_dict = {
+            site['SiteName']: {
+                'value': site['Rainfall (mm)'],
+                'lat': site['Latitude'],
+                'long': site['Longitude']
+            }
+            for site in sites
+        }
+    elif selected_measurement == "River Stage (m)":
+        sensor_dict = {
+            site['SiteName']: {
+                'value': site['Stage (m)'],
+                'lat': site['Latitude'],
+                'long': site['Longitude']
+            }
+            for site in sites
+        }
+    elif selected_measurement == "Water Temperature (°C)":
+        sensor_dict = {
+            site['SiteName']: {
+                'value': site['Water Temperature (°C)'],
+                'lat': site['Latitude'],
+                'long': site['Longitude']
+            }
+            for site in sites
+        }
+    elif selected_measurement == "Air Temperature (°C)":
+        sensor_dict = {
+            site['SiteName']: {
+                'value': site['Air Temperature (°C)'],
+                'lat': site['Latitude'],
+                'long': site['Longitude']
+            }
+            for site in sites
+        }
+    elif selected_measurement == "River Flow (m³/s)":
+        # Assuming 'Flow (m³/sec)' is the key for river flow values
+        sensor_dict = {
+            site['SiteName']: {
+                'value': site['Flow (m³/sec)'],
+                'lat': site['Latitude'],
+                'long': site['Longitude']
+            }
+            for site in sites
+        }
+
+    for site_name, values in sensor_dict.items():
+        value = values['value']
+        lat = values['lat']
+        lon = values['long']
         
-        try:
-            data_dict = fetch_data(
-                site=site_name, 
-                measurement=hilltop_measurement_name, 
-                start_date=start_date.isoformat(), 
-                end_date=end_date.isoformat()
-            )
-            data_series = data_dict["raw_data"]
-            # Rename the value column to a generic 'Value' after flattening for easier access
-            data_series = data_series[['time', 'Value']].rename(columns={'time': 'DateTime'})
-            data_series['DateTime'] = pd.to_datetime(data_series['DateTime'])
-            data_series.set_index('DateTime', inplace=True)
-                
-            if is_incremental:
-                if data_series is not None and not data_series.empty:
-                    value = data_series.iloc[:, 0].sum()
-                else:
-                    value = 0 
-            else: # Instantaneous
-                if data_series is not None and not data_series.empty:
-                    value = data_series.iloc[-1, 0]
-                else:
-                    value = None
+        if value is not None:
+            color = 'green' # Default color
+            # Adjust color based on measurement type and value (dummy thresholds)
+            if selected_measurement == "Rainfall (mm)":
+                if value > 50: color = 'red'
+                elif value > 10: color = 'orange'
+            elif selected_measurement == "River Flow (m³/s)":
+                if value > 100: color = 'red'
+                elif value > 50: color = 'orange'
+            elif selected_measurement == "Water Temperature (°C)":
+                if value > 25: color = 'red'
+                elif value > 15: color = 'orange'
+            elif selected_measurement == "Air Temperature (°C)":
+                if value > 24: color = 'red'
+                elif value > 10: color = 'orange'
+            elif selected_measurement == "River Stage (m)":
+                if value > 7: color = 'red'
+                elif value > 3: color = 'orange'
+            # Add more conditions for other measurements as needed
             
-            if value is not None:
-                color = 'green' # Default color
-                # Adjust color based on measurement type and value (dummy thresholds)
-                if selected_measurement == "Rainfall (mm)":
-                    if value > 50: color = 'red'
-                    elif value > 10: color = 'orange'
-                elif selected_measurement == "River Flow (m³/s)":
-                    if value > 10: color = 'red'
-                    elif value > 3: color = 'orange'
-                # Add more conditions for other measurements as needed
-               
-                popup_content = f"<b>{site_name}</b><br>{selected_measurement}: {value:.1f}"
-                if is_incremental:
-                    popup_content += f" ({selected_time_period} total)"
-                else:
-                    popup_content += f" (Latest)"
+            popup_content = f"<b>{site_name}</b><br>{selected_measurement}: {value:.1f}"
+            if is_incremental:
+                popup_content += f" ({selected_time_period} total)"
+            else:
+                popup_content += f" (Latest)"
 
-                map_markers.append(
-                    dl.CircleMarker(
-                        center=[lat, lon],
-                        radius=8,
-                        color=color,
-                        fillColor=color,
-                        fillOpacity=0.8,
-                        children=[dl.Popup(content=popup_content)]
-                    )
-                )
-            else: # No data for the site/period
-                 map_markers.append(
-                    dl.CircleMarker(
-                        center=[lat, lon],
-                        radius=4, 
-                        color='grey',
-                        fillColor='grey',
-                        fillOpacity=0.5,
-                        children=[dl.Popup(content=f"<b>{site_name}</b><br>No data for {selected_measurement} in selected period.")]
-                    )
-                )
-
-        except Exception as e:
-            print(f"{log_prefix} Error fetching data for {site_name}: {e}")
             map_markers.append(
-                dl.Marker(
-                    position=[lat, lon],
-                    children=[dl.Popup(content=f"<b>{site_name}</b><br>Error fetching data: {e}")]
+                dl.CircleMarker(
+                    center=[lat, lon],
+                    radius=8,
+                    color=color,
+                    fillColor=color,
+                    fillOpacity=0.8,
+                    children=[dl.Popup(content=popup_content)]
                 )
             )
+        else: # No data for the site/period
+                map_markers.append(
+                dl.CircleMarker(
+                    center=[lat, lon],
+                    radius=4, 
+                    color='grey',
+                    fillColor='grey',
+                    fillOpacity=0.5,
+                    children=[dl.Popup(content=f"<b>{site_name}</b><br>No data for {selected_measurement} in selected period.")]
+                )
+            )
+
     return map_markers
+
+def process_map_data_2(selected_measurement, selected_time_period):
+    """
+    Fetches and processes data for map display markers.
+    Returns a list of dl.CircleMarker components.
+    """
+    log_prefix = "[DP-PROCESS-MAP-DATA-2]"
+    map_markers = []
+    if not selected_measurement or not selected_time_period:
+        return map_markers # Return empty if selections are incomplete
+
+    measurement_info = MEASUREMENTS_FOR_MAPS_AND_DATASETS.get(selected_measurement)
+    if not measurement_info:
+        return map_markers
+
+    print(f"{log_prefix} Processing map data for {selected_measurement} in period {selected_time_period}")
+    
+    # print(f"{log_prefix} Measurement info: {measurement_info}")
+    
+    hilltop_measurement_name = measurement_info["hilltop_measurement_name"]
+    sites = measurement_info["sites"]
+    measurements = measurement_info["measures"]
+    method =measurement_info["method"]
+    interval = measurement_info["interval"]
+    is_incremental = measurement_info["is_incremental"]
+
+    end_date = datetime.now()
+    start_date = datetime.now() - timedelta(days=2)
+
+    result = ','.join(sites['SiteName'])
+    sitenames = quote(result)
+    # print(f"{log_prefix}: Site list: {sitenames}")
+    measurements = quote(measurements)
+    df = fetch_data_table_for_custom_collection(sitenames,
+                                                measurements,
+                                                from_date=start_date,
+                                                to_date=end_date,
+                                                method=method,
+                                                interval=interval)
+    
+    print(f"{log_prefix}: Measurement name -> {hilltop_measurement_name}")
+    
+    if hilltop_measurement_name=="Rainfall":
+        df['M1'] = df['M1'].combine_first(df['M2'])
+        df = df[["SiteName","Time","M1"]]
+    
+    df_most_recent = df.groupby('SiteName').last(numeric_only=False)['M1']
+    
+    print(f"{log_prefix}: Dataframe [df_most_recent]:\n{df_most_recent.head()}")
+          
+    if not start_date:
+        return map_markers # Should not happen with valid `selected_time_period`
+
+    # join Sites with the most recent value for each requested measurement for that site
+    sites = pd.merge(sites, df_most_recent, on='SiteName', how='left') #.dropna()
+    print(f"{log_prefix}: Dataframe [sites]:\n{sites.head()}")
+    
+    # Extract SiteName and most recent sensor value into a new dictionary
+    sites_dict = sites.to_dict(orient='records')
+    print(f"{log_prefix}: Site dict contents:\n{sites_dict}")
+
+    for item in sites_dict:
+        site_name =item["SiteName"]
+        value = item["M1"]
+        lat = item["Latitude"]
+        lon = item["Longitude"]
+        
+        if value is not None:
+            color = 'green' # Default color
+            # Adjust color based on measurement type and value (dummy thresholds)
+            if selected_measurement == "Rainfall (mm)":
+                if value > 50: color = 'red'
+                elif value > 10: color = 'orange'
+            elif selected_measurement == "River Flow (m³/s)":
+                if value > 100: color = 'red'
+                elif value > 50: color = 'orange'
+            elif selected_measurement == "Water Temperature (°C)":
+                if value > 25: color = 'red'
+                elif value > 15: color = 'orange'
+            elif selected_measurement == "Air Temperature (°C)":
+                if value > 24: color = 'red'
+                elif value > 10: color = 'orange'
+            elif selected_measurement == "River Stage (m)":
+                if value > 7: color = 'red'
+                elif value > 3: color = 'orange'
+            # Add more conditions for other measurements as needed
+            
+            popup_content = f"<b>{site_name}</b><br>{selected_measurement}: {value:.1f}"
+            # if is_incremental:
+            #     popup_content += f" ({selected_time_period} total)"
+            # else:
+            #     popup_content += f" (Latest)"
+            popup_content += f" (Latest)"
+            map_markers.append(
+                dl.CircleMarker(
+                    center=[lat, lon],
+                    radius=8,
+                    color=color,
+                    fillColor=color,
+                    fillOpacity=0.8,
+                    children=[dl.Popup(content=popup_content)]
+                )
+            )
+        else: # No data for the site/period
+                map_markers.append(
+                dl.CircleMarker(
+                    center=[lat, lon],
+                    radius=4, 
+                    color='grey',
+                    fillColor='grey',
+                    fillOpacity=0.5,
+                    children=[dl.Popup(content=f"<b>{site_name}</b><br>No data for {selected_measurement} in selected period.")]
+                )
+            )
+
+    return map_markers
+
 
 # --- Helpers for Dataset Page ---
 
@@ -223,6 +490,7 @@ def get_dataset_site_options(selected_measurement):
     print(f"{log_prefix} Measurement info: {MEASUREMENTS_FOR_MAPS_AND_DATASETS}")
     if measurement_info:
         sites = measurement_info.get("sites", [])
+        sites = sites.to_dict(orient='records')
         options = [{'label': s['SiteName'], 'value': s['SiteName']} for s in sites]
         return options, []
     return [], []
@@ -240,29 +508,42 @@ def get_dataset_data_for_display(selected_measurement, selected_sites, start_dat
         return pd.DataFrame(), False # Return empty df and False if measurement is invalid
 
     hilltop_measurement_name = measurement_info["hilltop_measurement_name"]
+    measurements = measurement_info["measures"]
+    method =measurement_info["method"]
+    interval = measurement_info["interval"]
     
     for site_name in selected_sites:
         try:
-            site_info = next((s for s in measurement_info["sites"] if s['SiteName'] == site_name), None)
+            site_info = next((s for s in measurement_info["sites"].to_dict(orient='records') if s['SiteName'] == site_name), None)
+            # print(f"{log_prefix} {site_info}")
+            
             if not site_info:
                 print(f"{log_prefix} Warning: Site '{site_name}' not found in measurement info for {selected_measurement}.")
                 continue
 
-            data_dict = fetch_data(
-                site=site_name,
-                measurement=hilltop_measurement_name, 
-                start_date=start_date, 
-                end_date=end_date
-            )
-            df = data_dict["raw_data"]
-            # Ensure consistent column naming after fetch_data processing
-            df = df[['time', 'Value']].rename(columns={'time': 'DateTime'})
-            df['DateTime'] = pd.to_datetime(df['DateTime'])
+            df = fetch_data_table_for_custom_collection(site_name,
+                                            measurements,
+                                            from_date=start_date,
+                                            to_date=end_date,
+                                            method=method,
+                                            interval=interval)
             
-            if df is not None and not df.empty:
-                df.columns = ['DateTime', 'Value'] # Explicitly name columns
-                df['Site'] = site_name
+            print(f"{log_prefix}: Dataframe [df] -> {df.head()}")
+            # data_dict = fetch_data(
+            #     site=site_name,
+            #     measurement=hilltop_measurement_name, 
+            #     start_date=start_date, 
+            #     end_date=end_date
+            # )
+            # df = data_dict["raw_data"]
+            # Ensure consistent column naming after fetch_data processing
+            if df is not None and not df.empty:                
+                df = df[['Time', 'M1']].rename(columns={'Time': 'DateTime', 'M1': "Value"})
+                print(f"{log_prefix}: Dataframe [df] -> {df.head()}")
+                # df['DateTime'] = pd.to_datetime(df['DateTime'])
                 df['Measurement'] = selected_measurement
+                df['SiteName'] = site_name
+                print(f"{log_prefix}: Dataframe [df] -> {df.info()}")
                 all_site_data.append(df) # Append the processed DataFrame
             else:
                 print(f"{log_prefix} No data for {site_name} - {hilltop_measurement_name} for period {start_date} to {end_date}")

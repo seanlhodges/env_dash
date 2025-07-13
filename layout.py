@@ -142,7 +142,7 @@ def serve_quick_reference_river_flow_status_layout(flow_data_df=None, latest_flo
         table_content = dbc.Alert("No river flow data available for display.", color="warning")
     else:
         latest_flow_display = f"{latest_flow:.1f}" if isinstance(latest_flow, (int, float)) else str(latest_flow)
-        flow_graph_figure = go.Figure(data=[go.Scatter(x=flow_data_df.index, y=flow_data_df['Flow (m³/s)'], mode='lines')],
+        flow_graph_figure = go.Figure(data=[go.Scatter(x=flow_data_df['DateTime'], y=flow_data_df['Flow (m³/s)'], mode='lines')],
                                      layout=go.Layout(title='Patea at Skinner Rd (Last 7 Days)',
                                                       xaxis_title='Date/Time',
                                                       yaxis_title='Flow (m³/s)',
@@ -178,7 +178,7 @@ def serve_quick_reference_waiwhakaiho_egmont_village_layout(flow_data_df=None, l
         table_content = dbc.Alert("No river flow data available for display.", color="warning")
     else:
         latest_flow_display = f"{latest_flow:.1f}" if isinstance(latest_flow, (int, float)) else str(latest_flow)
-        flow_graph_figure = go.Figure(data=[go.Scatter(x=flow_data_df.index, y=flow_data_df['Flow (m³/s)'], mode='lines')],
+        flow_graph_figure = go.Figure(data=[go.Scatter(x=flow_data_df['DateTime'], y=flow_data_df['Flow (m³/s)'], mode='lines')],
                                      layout=go.Layout(title='Waiwhakaiho (Last 7 Days)',
                                                       xaxis_title='Date/Time',
                                                       yaxis_title='Flow (m³/s)',
@@ -225,69 +225,69 @@ def serve_quick_reference_air_quality_report_layout():
         html.P("This page would eventually display graphs and tables of common air pollutants (e.g., PM10, PM2.5).")
     ])
 
+
 def serve_map_page_layout():
     """Returns the layout for the Maps page."""
     measurement_options = [{'label': k, 'value': k} for k in MEASUREMENTS_FOR_MAPS_AND_DATASETS.keys()]
     
     return html.Div([
         html.H3("Environmental Data Maps"),
+        
         dbc.Row([
             dbc.Col(
-                dbc.FormFloating(
-                    [
-                        dcc.Dropdown(
-                            id='map-measurement-dropdown',
-                            options=measurement_options,
-                            placeholder="Select a Measurement",
-                            value=list(MEASUREMENTS_FOR_MAPS_AND_DATASETS.keys())[0] if MEASUREMENTS_FOR_MAPS_AND_DATASETS else None,
-                            clearable=False
-                        ),
-                        dbc.Label("Measurement Type")
-                    ]
-                ),
+                dbc.FormFloating([
+                    dcc.Dropdown(
+                        id='map-measurement-dropdown',
+                        options=measurement_options,
+                        placeholder="Select a Measurement",
+                        value=list(MEASUREMENTS_FOR_MAPS_AND_DATASETS.keys())[0] if MEASUREMENTS_FOR_MAPS_AND_DATASETS else None,
+                        clearable=False
+                    ),
+                    dbc.Label("Measurement Type")
+                ]),
                 md=4
             ),
             dbc.Col(
-                dbc.FormFloating(
-                    [
-                        dcc.Dropdown(
-                            id='map-time-period-dropdown',
-                            options=[], # Populated by callback
-                            placeholder="Select Time Period",
-                            clearable=False
-                        ),
-                        dbc.Label("Time Period")
-                    ]
-                ),
+                dbc.FormFloating([
+                    dcc.Dropdown(
+                        id='map-time-period-dropdown',
+                        options=[],  # Set by callback
+                        placeholder="Select Time Period",
+                        clearable=False
+                    ),
+                    dbc.Label("Time Period")
+                ]),
                 md=4
-            ),
-            dbc.Col(
-                dbc.Button("Load Map Data", id="load-map-data-btn", color="primary", className="mt-2"),
-                md=2
             )
         ], className="mb-4"),
-        html.Div(id='map-output-container', children=[
-            dbc.Alert("Select a measurement and time period, then click 'Load Map Data'.", color="info")
-        ])
-    ])
-
-def create_map_display(map_markers):
-    """Generates the Leaflet map component with given markers."""
-    return html.Div([
-        dl.Map(
-            center=TARANAKI_MAP_CENTER, 
-            zoom=DEFAULT_MAP_ZOOM, 
+        
+        dcc.Loading(
+            id="loading-map",
+            type="circle",
             children=[
-                dl.TileLayer(),
-                dl.LayersControl([
-                    dl.Overlay(dl.LayerGroup(map_markers), name="Sites", checked=True),
-                ])
-            ],
-            style={'width': '100%', 'height': '600px', 'margin': "auto", "display": "block"}
+                dl.Map(
+                    id="leaflet-map",
+                    center=TARANAKI_MAP_CENTER,
+                    zoom=DEFAULT_MAP_ZOOM,
+                    children=[
+                        dl.TileLayer(),
+                        dl.LayersControl([
+                            dl.Overlay(
+                                dl.LayerGroup(id="marker-layer"),
+                                name="Sites",
+                                checked=True
+                            )
+                        ])
+                    ],
+                    style={'width': '100%', 'height': '600px', 'margin': "auto", "display": "block"}
+                )
+            ]
         ),
+
         html.Hr(),
         html.P("Map legend goes here: e.g., Red = High, Orange = Medium, Green = Low")
     ])
+
 
 def serve_datasets_page_layout():
     """Returns the layout for the Datasets page."""
