@@ -590,7 +590,8 @@ def process_map_data_2(selected_measurement, selected_time_period):
     if verbose:
         print(f"{log_prefix}: df_most_recent (after groupby, apply on M1, dropna, and reset_index):\n{df_most_recent.head()}")
         print(f"{log_prefix}: df_most_recent columns (after reset_index): {df_most_recent.columns.tolist()}")
-          
+        print(f"{log_prefix}: sites_base_df columns : {sites_base_df.columns.tolist()}")
+              
     # Merge the base site information with the most recent sensor value
     # Now df_most_recent has 'SiteName' and 'M1' as columns.
     sites_with_data = pd.merge(sites_base_df, df_most_recent[['SiteName', 'M1']], on='SiteName', how='left')
@@ -601,8 +602,10 @@ def process_map_data_2(selected_measurement, selected_time_period):
         # Check if _merge column shows issues like 'both' where it should be 'left_only' or vice versa
         # print(f"{log_prefix}: Merge indicator counts:\n{sites_with_data['_merge'].value_counts()}")
     
+    sites_dict=[]
     sites_dict = sites_with_data.to_dict(orient='records')
     
+    map_markers=[]
     for item in sites_dict:
         site_name = item["SiteName"]
         value = item.get("M1") # Use .get() for safer access, returns None if not present
@@ -638,8 +641,9 @@ def process_map_data_2(selected_measurement, selected_time_period):
                 elif value > 3: color = 'orange'
             
             popup_content = f"<b>{site_name}</b><br>{selected_measurement}: {value:.1f} (Latest)"
-            if verbose: print(f"{log_prefix}: Site '{site_name}': Data {value:.1f}, color {color}.")
-
+            if verbose: print(f"{log_prefix}: Site: '{site_name}', Data: {value:.1f}, color: {color}.")
+        
+        # print(f"{log_prefix}: Map markers: {map_markers}")
         map_markers.append(
             dl.CircleMarker(
                 center=[lat, lon],
