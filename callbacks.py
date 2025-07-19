@@ -118,10 +118,18 @@ def register_callbacks(app):
     @app.callback(
         Output("marker-layer", "children"),
         Input("map-measurement-dropdown", "value"),
-        Input("map-time-period-dropdown", "value")
+        Input("map-time-period-dropdown", "value"),
+        # Add a placeholder div as a State if the initial issue persists
+        # State('marker-layer', 'children'), # <-- Add this if the map doesn't clear initially
+        prevent_initial_call=True # <--- ENSURE THIS IS UNCOMMENTED AND ACTIVE!
+                                 # This prevents the callback from firing before initial inputs are set.
+                                 # Then, it will only fire on subsequent changes.
+
     )
+    
     def update_map_markers(selected_measurement, selected_time_period):
-        print(f"[DEBUG] Triggered with: {selected_measurement}, {selected_time_period}")
+        log_prefix = "[UPDATE-MAP-MARKERS]"
+        print(f"{log_prefix} Triggered with: {selected_measurement}, {selected_time_period}")
         if not selected_measurement or not selected_time_period:
             # Returning empty list clears existing markers
             return []
@@ -129,12 +137,11 @@ def register_callbacks(app):
         markers = process_map_data_2(selected_measurement, selected_time_period)
 
         if not markers:
-            # Optional: add a default marker or popup for "no data"
-            print("[MAP] No markers returned.")
-            return []
+            print(f"{log_prefix} No markers returned by process_map_data_2. Clearing map.")
+            return [] # Ensure it clears if data processing yields nothing
 
+        print(f"{log_prefix} Returning {len(markers)} markers.")
         return markers
-
 
     # --- Callbacks for Datasets Page ---    
     @app.callback(

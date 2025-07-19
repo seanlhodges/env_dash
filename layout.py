@@ -26,21 +26,21 @@ def serve_header_layout():
                 html.A(
                     dbc.Row(
                         [
-                            dbc.Col(html.Img(src="/assets/trc_logo.png", height="30px"), width="auto"), 
-                            dbc.Col(dbc.NavbarBrand("TRC Environmental Data Portal", className="ms-2")),
+                            dbc.Col(html.Img(src="/assets/portal_logo_white_transparent_bkgd.png", height="30px"), width="auto", style={"position":"absolute","left":"10px"}), 
+                            dbc.Col(dbc.NavbarBrand("Environmental Data Portal", className="ms-1")),
                         ],
-                        align="center",
+                        align="left",
                         className="g-0",
                     ),
-                    href="https://www.trc.govt.nz/",
+                    href="http://127.0.0.1:8050/",
                     style={"textDecoration": "none"},
                 ),
                 dbc.NavbarToggler(id="navbar-toggler", n_clicks=0),
                 dbc.Collapse(
                     dbc.Nav(
                         [
-                            dbc.NavItem(dbc.NavLink("About", href="https://www.trc.govt.nz/about-us/", target="_blank")),
-                            dbc.NavItem(dbc.NavLink("Contact", href="https://www.trc.govt.nz/contact-us/", target="_blank")),
+                            dbc.NavItem(dbc.NavLink("About", href="http://127.0.0.1:8050/about-us/", target="_blank")),
+                            dbc.NavItem(dbc.NavLink("Contact", href="http://127.0.0.1:8050/contact-us/", target="_blank")),
                         ],
                         className="ms-auto",
                         navbar=True,
@@ -97,11 +97,48 @@ def serve_sidebar_layout():
 def serve_default_page_layout():
     """Returns the welcome/default landing page layout."""
     default_path = '/quick-reference-taranaki-rainfall-summary'
+    default_path = '/'
     return html.Div([
-        html.H3("Welcome to the TRC Environmental Data Portal"),
-        html.P("Use the navigation on the left to explore environmental data for the Taranaki Region."),
-        dcc.Link("Go to Taranaki Rainfall Summary", href=default_path)
-    ])
+        html.Img(src='https://www.doc.govt.nz/thumbs/hero/contentassets/88ba5e1f554e4e7f871aadcaabbf875c/everett-park-scenic-reserve-walk1920.jpg',
+                     style={
+                            'width': '100%',
+                            'height': '200px',
+                            'padding':'0px',
+                            'margin':'0px',
+                            'object-fit': 'none' #contain
+                            },),
+        html.P(children=["Suspension bridge on the Kurapete Walk at Everett Park Scenic Reserve. ",
+                    html.Br(),
+                    "Source: ",
+                    html.A("Department of Conservation", 
+                           href="https://www.doc.govt.nz/parks-and-recreation/places-to-go/taranaki/places/everett-park-scenic-reserve/things-to-do/everett-park-scenic-reserve-walk/",
+                           target="_blank"),
+                    ".  ",
+                    "Image attribution: ",
+                    "Jaime Apolonio",
+                    " | ",
+                    html.A("Creative Commons", 
+                           href="https://creativecommons.org/licenses/by-nc/4.0/",
+                           target="_blank"),   
+                    html.Br(),
+                    ],
+                     style={
+                            'font-size':'0.8em'
+                            },),
+        html.P(""),
+        html.H2("Environmental Data Portal"),
+        html.P("Use the navigation on the left to explore selected environmental data for the Taranaki Region."),
+        html.P(children=["This portal accesses environmental monitoring data collected in the Taranaki region. ",
+                         "The sources of data used in this portal are from:",
+                         html.Ul(),
+                         html.Li("Councils"),
+                         html.Li("Private weather stations"),
+                         html.Li("NIWA"),]),
+        html.P("We do make some of the data available for download but please refer to metadata for specific sources."),                 
+        # dcc.Link("Go to Taranaki Rainfall Summary", href=default_path)
+    ],style={'padding':'0px',
+             'margin':'0px',}
+    )
 
 # Quick Reference Page Layouts - these now ACCEPT data as arguments
 # They no longer fetch data themselves

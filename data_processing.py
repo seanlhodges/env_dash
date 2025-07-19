@@ -7,6 +7,7 @@ import dash_leaflet.express as dlx
 from urllib.parse import quote
 
 from hilltop_api import (fetch_data,
+                         fetch_measurement_list,
                          fetch_data_table_for_custom_collection)
 from constants import (
     MEASUREMENTS_FOR_MAPS_AND_DATASETS, 
@@ -20,10 +21,10 @@ verbose=False # Default is False
 
 # --- Helper to get data for Quick Reference Pages ---
 
-def get_rainfall_summary_data():
+def get_rainfall_summary_data(sitename='Manganui at Everett Park'):
     """Fetches and processes data for the Taranaki Rainfall Summary."""
     try:
-        site = 'Manganui at Everett Park' # Example site, replace with dynamic logic
+        site = sitename # Example site, replace with dynamic logic
         measurement = 'Rainfall'
         start_date = (datetime.now() - timedelta(days=7)).isoformat()
         end_date = datetime.now().isoformat()
@@ -369,83 +370,258 @@ def process_map_data(selected_measurement, selected_time_period):
 
     return map_markers
 
+# def process_map_data_2(selected_measurement, selected_time_period):
+#     """
+#     Fetches and processes data for map display markers.
+#     Returns a list of dl.CircleMarker components.
+#     """
+#     log_prefix = "[DP-PROCESS-MAP-DATA-2]"
+#     map_markers = []
+#     if not selected_measurement or not selected_time_period:
+#         return map_markers # Return empty if selections are incomplete
+
+#     measurement_info = MEASUREMENTS_FOR_MAPS_AND_DATASETS.get(selected_measurement)
+#     if not measurement_info:
+#         return map_markers
+
+#     if verbose:
+#         print(f"{log_prefix} Processing map data for {selected_measurement} in period {selected_time_period}")
+    
+#     if verbose:
+#         print(f"{log_prefix} Measurement info: {measurement_info}")
+    
+#     hilltop_measurement_name = measurement_info["hilltop_measurement_name"]
+#     sites = measurement_info["sites"]
+#     measurements = measurement_info["measures"]
+#     method =measurement_info["method"]
+#     interval = measurement_info["interval"]
+#     is_incremental = measurement_info["is_incremental"]
+
+#     end_date = datetime.now()
+#     start_date = datetime.now() - timedelta(days=2)
+
+#     result = ','.join(sites['SiteName'])
+#     sitenames = quote(result)
+#     if verbose:
+#         print(f"{log_prefix}: Site list: {sitenames}")
+#     measurements = quote(measurements)
+#     df = fetch_data_table_for_custom_collection(sitenames,
+#                                                 measurements,
+#                                                 from_date=start_date,
+#                                                 to_date=end_date,
+#                                                 method=method,
+#                                                 interval=interval)
+    
+#     if verbose:
+#         print(f"{log_prefix}: Measurement name -> {hilltop_measurement_name}")
+    
+#     if hilltop_measurement_name=="Rainfall":
+#         df['M1'] = df['M1'].combine_first(df['M2'])
+#         df = df[["SiteName","Time","M1"]]
+    
+#     df_most_recent = df.groupby('SiteName').last(numeric_only=False)['M1']
+    
+#     if verbose:
+#         print(f"{log_prefix}: Dataframe [df_most_recent]:\n{df_most_recent.head()}")
+          
+#     if not start_date:
+#         return map_markers # Should not happen with valid `selected_time_period`
+
+#     # join Sites with the most recent value for each requested measurement for that site
+#     sites = pd.merge(sites, df_most_recent, on='SiteName', how='left') #.dropna()
+#     if verbose:
+#         print(f"{log_prefix}: Dataframe [sites]:\n{sites.head()}")
+    
+#     # Extract SiteName and most recent sensor value into a new dictionary
+#     sites_dict = sites.to_dict(orient='records')
+#     if verbose:
+#         print(f"{log_prefix}: Site dict contents:\n{sites_dict}")
+
+#     for item in sites_dict:
+#         site_name =item["SiteName"]
+#         value = item["M1"]
+#         lat = item["Latitude"]
+#         lon = item["Longitude"]
+        
+#         if value is not None:
+#             color = 'green' # Default color
+#             # Adjust color based on measurement type and value (dummy thresholds)
+#             if selected_measurement == "Rainfall (mm)":
+#                 if value > 50: color = 'red'
+#                 elif value > 10: color = 'orange'
+#             elif selected_measurement == "River Flow (m³/s)":
+#                 if value > 100: color = 'red'
+#                 elif value > 50: color = 'orange'
+#             elif selected_measurement == "Water Temperature (°C)":
+#                 if value > 25: color = 'red'
+#                 elif value > 15: color = 'orange'
+#             elif selected_measurement == "Air Temperature (°C)":
+#                 if value > 24: color = 'red'
+#                 elif value > 10: color = 'orange'
+#             elif selected_measurement == "River Stage (m)":
+#                 if value > 7: color = 'red'
+#                 elif value > 3: color = 'orange'
+#             # Add more conditions for other measurements as needed
+            
+#             popup_content = f"<b>{site_name}</b><br>{selected_measurement}: {value:.1f}"
+#             # if is_incremental:
+#             #     popup_content += f" ({selected_time_period} total)"
+#             # else:
+#             #     popup_content += f" (Latest)"
+#             popup_content += f" (Latest)"
+#             map_markers.append(
+#                 dl.CircleMarker(
+#                     center=[lat, lon],
+#                     radius=8,
+#                     color=color,
+#                     fillColor=color,
+#                     fillOpacity=0.8,
+#                     children=[dl.Popup(content=popup_content)]
+#                 )
+#             )
+#         else: # No data for the site/period
+#                 map_markers.append(
+#                 dl.CircleMarker(
+#                     center=[lat, lon],
+#                     radius=4, 
+#                     color='grey',
+#                     fillColor='grey',
+#                     fillOpacity=0.5,
+#                     children=[dl.Popup(content=f"<b>{site_name}</b><br>No data for {selected_measurement} in selected period.")]
+#                 )
+#             )
+
+#     return map_markers
+
+# data_processing.py
+
+# ... (rest of your code)
+
 def process_map_data_2(selected_measurement, selected_time_period):
     """
     Fetches and processes data for map display markers.
     Returns a list of dl.CircleMarker components.
     """
+    verbose=True
     log_prefix = "[DP-PROCESS-MAP-DATA-2]"
     map_markers = []
     if not selected_measurement or not selected_time_period:
-        return map_markers # Return empty if selections are incomplete
+        if verbose: print(f"{log_prefix} Incomplete selection: {selected_measurement}, {selected_time_period}. Returning empty markers.")
+        return map_markers
 
     measurement_info = MEASUREMENTS_FOR_MAPS_AND_DATASETS.get(selected_measurement)
     if not measurement_info:
+        if verbose: print(f"{log_prefix} No measurement info for: {selected_measurement}. Returning empty markers.")
         return map_markers
 
     if verbose:
-        print(f"{log_prefix} Processing map data for {selected_measurement} in period {selected_time_period}")
-    
-    if verbose:
-        print(f"{log_prefix} Measurement info: {measurement_info}")
+        print(f"\n{log_prefix} --- START PROCESSING FOR: {selected_measurement} ({selected_time_period}) ---")
+        print(f"{log_prefix} Initial Measurement info sites type: {type(measurement_info['sites'])}")
     
     hilltop_measurement_name = measurement_info["hilltop_measurement_name"]
-    sites = measurement_info["sites"]
-    measurements = measurement_info["measures"]
-    method =measurement_info["method"]
+    # CRITICAL: Create a COPY of the sites DataFrame to ensure it's clean for each merge.
+    # This might be the culprit if 'sites' was somehow being modified in place or retaining columns
+    sites_base_df = measurement_info["sites"].copy() # <--- ADDED .copy() HERE
+    
+    measurements_str = measurement_info["measures"]
+    method = measurement_info["method"]
     interval = measurement_info["interval"]
     is_incremental = measurement_info["is_incremental"]
 
     end_date = datetime.now()
-    start_date = datetime.now() - timedelta(days=2)
+    start_date = datetime.now() - timedelta(days=2) # This is a fixed window for all requests
 
-    result = ','.join(sites['SiteName'])
-    sitenames = quote(result)
-    if verbose:
-        print(f"{log_prefix}: Site list: {sitenames}")
-    measurements = quote(measurements)
-    df = fetch_data_table_for_custom_collection(sitenames,
-                                                measurements,
-                                                from_date=start_date,
-                                                to_date=end_date,
-                                                method=method,
-                                                interval=interval)
+    result = ','.join(sites_base_df['SiteName'])
+    sitenames_quoted = quote(result)
+    measurements_quoted = quote(measurements_str)
     
     if verbose:
-        print(f"{log_prefix}: Measurement name -> {hilltop_measurement_name}")
+        print(f"{log_prefix}: Requesting data for sites: {sites_base_df['SiteName'].tolist()}")
+        print(f"{log_prefix}: Requesting data for measures: {measurements_str}")
+        print(f"{log_prefix}: Using method: '{method}', interval: '{interval}'")
+        print(f"{log_prefix}: Date range: {start_date.isoformat()} to {end_date.isoformat()}")
+
+    df_fetched_raw = fetch_data_table_for_custom_collection(
+        sitenames_quoted,
+        measurements_quoted,
+        from_date=start_date,
+        to_date=end_date,
+        method=method,
+        interval=interval
+    )
     
-    if hilltop_measurement_name=="Rainfall":
-        df['M1'] = df['M1'].combine_first(df['M2'])
-        df = df[["SiteName","Time","M1"]]
-    
-    df_most_recent = df.groupby('SiteName').last(numeric_only=False)['M1']
-    
+    if df_fetched_raw.empty:
+        if verbose: print(f"{log_prefix}: No raw data fetched for {selected_measurement}. Returning empty markers.")
+        return map_markers
+
     if verbose:
-        print(f"{log_prefix}: Dataframe [df_most_recent]:\n{df_most_recent.head()}")
+        print(f"{log_prefix}: Raw fetched data columns: {df_fetched_raw.columns.tolist()}")
+        print(f"{log_prefix}: Raw fetched data head:\n{df_fetched_raw.head()}")
+    
+    # Standardize 'M1' if 'M2' contains the primary data for Rainfall as per app.py logic
+    if hilltop_measurement_name == "Rainfall": # Based on app.py, Rainfall uses M1 or M2
+        if 'M2' in df_fetched_raw.columns:
+            df_fetched_raw['M1'] = df_fetched_raw['M1'].combine_first(df_fetched_raw['M2'])
+            if verbose: print(f"{log_prefix}: Combined M1 and M2 for Rainfall.")
+        df_processed = df_fetched_raw[["SiteName", "Time", "M1"]]
+    else:
+        # For other measurements, assume M1 is the relevant column
+        if 'M1' in df_fetched_raw.columns:
+            df_processed = df_fetched_raw[["SiteName", "Time", "M1"]]
+        else:
+            if verbose: print(f"{log_prefix}: 'M1' column not found for {selected_measurement}. Available columns: {df_fetched_raw.columns.tolist()}")
+            return map_markers # Cannot proceed without M1
+
+    # Get the last valid reading for 'M1' for each site
+    # This needs to handle potential NaNs correctly
+    # Get the last valid reading for 'M1' for each site
+    # This revised apply directly selects the 'M1' value, resulting in a Series.
+    # Then .dropna() removes any sites that had no valid 'M1' value.
+    df_most_recent = df_processed.groupby('SiteName', group_keys=False)['M1'].apply(
+        lambda x: x.loc[x.last_valid_index()] if x.last_valid_index() is not None else None
+    ).dropna()
+
+    # --- FIX STARTS HERE ---
+    # Now, df_most_recent is a Series with SiteName as its index.
+    # reset_index() will convert the Series into a DataFrame and promote the index ('SiteName') to a column.
+    df_most_recent = df_most_recent.reset_index(name='M1') # Name the value column 'M1' after reset
+    # --- FIX ENDS HERE ---
+
+    if verbose:
+        print(f"{log_prefix}: df_most_recent (after groupby, apply on M1, dropna, and reset_index):\n{df_most_recent.head()}")
+        print(f"{log_prefix}: df_most_recent columns (after reset_index): {df_most_recent.columns.tolist()}")
           
-    if not start_date:
-        return map_markers # Should not happen with valid `selected_time_period`
-
-    # join Sites with the most recent value for each requested measurement for that site
-    sites = pd.merge(sites, df_most_recent, on='SiteName', how='left') #.dropna()
+    # Merge the base site information with the most recent sensor value
+    # Now df_most_recent has 'SiteName' and 'M1' as columns.
+    sites_with_data = pd.merge(sites_base_df, df_most_recent[['SiteName', 'M1']], on='SiteName', how='left')
+        
     if verbose:
-        print(f"{log_prefix}: Dataframe [sites]:\n{sites.head()}")
+        print(f"{log_prefix}: Merged 'sites_with_data' DataFrame head:\n{sites_with_data.head()}")
+        print(f"{log_prefix}: Merged 'sites_with_data' DataFrame columns:\n{sites_with_data.columns.tolist()}")
+        # Check if _merge column shows issues like 'both' where it should be 'left_only' or vice versa
+        # print(f"{log_prefix}: Merge indicator counts:\n{sites_with_data['_merge'].value_counts()}")
     
-    # Extract SiteName and most recent sensor value into a new dictionary
-    sites_dict = sites.to_dict(orient='records')
-    if verbose:
-        print(f"{log_prefix}: Site dict contents:\n{sites_dict}")
-
+    sites_dict = sites_with_data.to_dict(orient='records')
+    
     for item in sites_dict:
-        site_name =item["SiteName"]
-        value = item["M1"]
+        site_name = item["SiteName"]
+        value = item.get("M1") # Use .get() for safer access, returns None if not present
         lat = item["Latitude"]
         lon = item["Longitude"]
         
-        if value is not None:
+        if verbose: print(f"{log_prefix}: Processing site '{site_name}'. Raw value from merged DF: {value}")
+
+        if pd.isna(value): # Explicitly check for NaN using pd.isna
+            color = 'grey'
+            radius = 4
+            popup_content = f"<b>{site_name}</b><br>No recent data for {selected_measurement}."
+            if verbose: print(f"{log_prefix}: Site '{site_name}': No data (NaN), using grey marker.")
+        else:
+            radius = 8
             color = 'green' # Default color
-            # Adjust color based on measurement type and value (dummy thresholds)
-            if selected_measurement == "Rainfall (mm)":
+            
+            # Your existing color logic
+            if selected_measurement == "Hourly Rainfall (mm)" or selected_measurement == "Daily Rainfall (mm)":
                 if value > 50: color = 'red'
                 elif value > 10: color = 'orange'
             elif selected_measurement == "River Flow (m³/s)":
@@ -460,38 +636,23 @@ def process_map_data_2(selected_measurement, selected_time_period):
             elif selected_measurement == "River Stage (m)":
                 if value > 7: color = 'red'
                 elif value > 3: color = 'orange'
-            # Add more conditions for other measurements as needed
             
-            popup_content = f"<b>{site_name}</b><br>{selected_measurement}: {value:.1f}"
-            # if is_incremental:
-            #     popup_content += f" ({selected_time_period} total)"
-            # else:
-            #     popup_content += f" (Latest)"
-            popup_content += f" (Latest)"
-            map_markers.append(
-                dl.CircleMarker(
-                    center=[lat, lon],
-                    radius=8,
-                    color=color,
-                    fillColor=color,
-                    fillOpacity=0.8,
-                    children=[dl.Popup(content=popup_content)]
-                )
-            )
-        else: # No data for the site/period
-                map_markers.append(
-                dl.CircleMarker(
-                    center=[lat, lon],
-                    radius=4, 
-                    color='grey',
-                    fillColor='grey',
-                    fillOpacity=0.5,
-                    children=[dl.Popup(content=f"<b>{site_name}</b><br>No data for {selected_measurement} in selected period.")]
-                )
-            )
+            popup_content = f"<b>{site_name}</b><br>{selected_measurement}: {value:.1f} (Latest)"
+            if verbose: print(f"{log_prefix}: Site '{site_name}': Data {value:.1f}, color {color}.")
 
+        map_markers.append(
+            dl.CircleMarker(
+                center=[lat, lon],
+                radius=radius,
+                color=color,
+                fillColor=color,
+                fillOpacity=0.8,
+                children=[dl.Popup(content=popup_content)]
+            )
+        )
+    
+    if verbose: print(f"{log_prefix} --- END PROCESSING FOR: {selected_measurement} ---")
     return map_markers
-
 
 # --- Helpers for Dataset Page ---
 

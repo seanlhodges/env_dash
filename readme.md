@@ -17,13 +17,17 @@ The main code is separated out into six files
 
 ## Issues
 
-1. Production of the mapped points for measurements still relies on individual calls to hilltop for data at each site - as a result, building the map takes too long. This needs to be replaced by a single call using ```DataTable``` or ```RecentDataTable```. These methods have been built and can be found in the ```hilltop_api.py``` file. This will make the map more responsive.
+1. [UPDATED 2025-07-13] *This issue has now been resolved by being able to create collections on the fly. The code has been refactored accordingly. This speeds up map rendering to being almost instantaneous.* Production of the mapped points for measurements still relies on individual calls to hilltop for data at each site - as a result, building the map takes too long. This needs to be replaced by a single call using ```DataTable``` or ```RecentDataTable```. These methods have been built and can be found in the ```hilltop_api.py``` file. This will make the map more responsive.
 
 2. Charts and reports are yet to be built. The first report will likely be about the Jul 3rd, 2025 rainfall event
 
-3. Rainfall is not well handled yet. I need to add some aggregation options to have hourly, and daily rainfall totals shown on maps and in tables.
+3. [UPDATED 2025-07-13] *As a consequence of resolving [1] above, rainfall and rainfall totalling is now more easily handled through the on-the-fly collections.* Rainfall is not well handled yet. I need to add some aggregation options to have hourly, and daily rainfall totals shown on maps and in tables.
 
-4. And many more ...
+4. Map rendering is still a little odd. The map should clear when new measurements are selected to be mapped but this is not happening. I have uploaded the code to Gemini for review and it is also puzzled. I need to delve into what is happening within the browser I am using (Safari). The behaviour is identical in chrome so it is something to do with the code as it stands.
+   
+5. Water temperature data is not rendering on the maps.
+
+6. And many more ...
 
 ## Immediate next steps
 

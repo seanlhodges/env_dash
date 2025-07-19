@@ -84,3 +84,13 @@ start_date = datetime.now() - timedelta(days=2)
 print(start_date)
 print(end_date)
 
+html.P("Suspension bridge on the Kurapete Walk at Everett Park Scenic Reserve. <b>Image</b>: Jaime Apolonio | Creative Commons"),
+html.P(children=["Suspension bridge on the Kurapete Walk at Everett Park Scenic Reserve.",
+                    html.B("Image:"),
+                    html.I("Jaime Apolonio"),
+                    " | ",
+                    html.a("Creative Commons", 
+                           href="https://creativecommons.org/licenses/by-nc/4.0/",
+                           target="_blank")
+    
+])
