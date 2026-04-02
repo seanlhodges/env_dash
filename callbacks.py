@@ -5,6 +5,7 @@ import dash_bootstrap_components as dbc
 from datetime import datetime, timedelta
 import pandas as pd 
 import io
+import dash_leaflet as dl
 
 from layout import (
     serve_header_layout, serve_sidebar_layout, serve_default_page_layout,
@@ -17,7 +18,7 @@ from layout import (
 from data_processing import (
     get_map_time_period_options, process_map_data, process_map_data_2, 
     get_dataset_site_options, get_dataset_data_for_display,
-    get_rainfall_summary_data, get_flow_status_data # NOW IMPORTED HERE
+    get_rainfall_summary_data, get_flow_status_data
 )
 from constants import MEASUREMENTS_FOR_MAPS_AND_DATASETS 
 
@@ -25,7 +26,7 @@ from constants import MEASUREMENTS_FOR_MAPS_AND_DATASETS
 def register_callbacks(app):
     """Registers all callbacks with the Dash app."""
 
-    # Callback for Navbar Toggler
+    # Callback for Navbar Toggler (No Change)
     @app.callback(
         Output("navbar-collapse", "is_open"),
         [Input("navbar-toggler", "n_clicks")],
@@ -36,7 +37,7 @@ def register_callbacks(app):
             return not is_open
         return is_open
 
-    # Callback to update URL based on accordion button clicks
+    # Callback to update URL based on accordion button clicks (No Change)
     @app.callback(
         Output('url', 'pathname'),
         Output('main-sidebar-accordion', 'active_item'),
@@ -58,7 +59,6 @@ def register_callbacks(app):
             topic_and_sub_topic = button_data['index']
             
             main_topic_parts = topic_and_sub_topic.split('-')
-            # Assuming 'Quick-Reference' is always the first two parts of the index
             main_topic_name = "-".join(main_topic_parts[:2]) 
             
             new_pathname = f"/{topic_and_sub_topic.lower()}"
@@ -72,7 +72,7 @@ def register_callbacks(app):
         
         return current_path, dash.no_update
 
-    # Callback to update page content based on URL path (navigation)
+    # Callback to update page content based on URL path (navigation) (No Change)
     @app.callback(
         Output('page-content', 'children'),
         Output('current-page-path', 'children'),
@@ -80,13 +80,13 @@ def register_callbacks(app):
     )
     def display_page(pathname):
         if pathname == '/quick-reference-taranaki-rainfall-summary':
-            rainfall_data = get_rainfall_summary_data() # Fetch data here!
+            rainfall_data = get_rainfall_summary_data()
             return serve_quick_reference_rainfall_summary_layout(rainfall_data), pathname
         elif pathname == '/quick-reference-river-flow-status':
-            flow_data, latest_flow_value, flow_status_text, mean_annual_flood = get_flow_status_data(sitename="Patea at Skinner Rd") # Fetch data here!
+            flow_data, latest_flow_value, flow_status_text, mean_annual_flood = get_flow_status_data(sitename="Patea at Skinner Rd")
             return serve_quick_reference_river_flow_status_layout(flow_data, latest_flow_value, flow_status_text, mean_annual_flood), pathname
         elif pathname == '/quick-reference-waiwhakaiho-egmont-village':
-            flow_data, latest_flow_value, flow_status_text, mean_annual_flood = get_flow_status_data(sitename="Waiwhakaiho at Egmont Village") # Fetch data here!
+            flow_data, latest_flow_value, flow_status_text, mean_annual_flood = get_flow_status_data(sitename="Waiwhakaiho at Egmont Village")
             return serve_quick_reference_waiwhakaiho_egmont_village_layout(flow_data, latest_flow_value, flow_status_text, mean_annual_flood), pathname
         elif pathname == '/quick-reference-waiwhakaiho-report':
            return serve_quick_reference_waiwhakaiho_report_layout(), pathname
@@ -105,45 +105,75 @@ def register_callbacks(app):
             return serve_default_page_layout(), default_path
 
     # --- Callbacks for Maps Page ---
+    # Re-enable the update_map_time_period_options callback!
+
+    # ... (other callbacks, including toggle_navbar_collapse, update_url_and_active_accordion, display_page)
+
+    # Callback to update map time period options (remains unchanged)
     @app.callback(
         Output('map-time-period-dropdown', 'options'),
         Output('map-time-period-dropdown', 'value'),
         Input('map-measurement-dropdown', 'value'),
-        # prevent_initial_call=True
+        prevent_initial_call=True
     )
     def update_map_time_period_options(selected_measurement):
-        return get_map_time_period_options(selected_measurement)
+        log_prefix = "[UPDATE-MAP-TIME-PERIOD-OPTIONS]"
+        print(f"{log_prefix}: Triggered with selected_measurement: {selected_measurement}")
+        options, value = get_map_time_period_options(selected_measurement)
+        print(f"{log_prefix}: Returning options: {options}, value: {value}")
+        return options, value
 
-
+    # Callback to process data and store it in dcc.Store (remains unchanged)
     @app.callback(
-        Output("marker-layer", "children"),
+        Output("map-marker-data-store", "data"), # Output to the dcc.Store
         Input("map-measurement-dropdown", "value"),
         Input("map-time-period-dropdown", "value"),
-        # Add a placeholder div as a State if the initial issue persists
-        # State('marker-layer', 'children'), # <-- Add this if the map doesn't clear initially
-        prevent_initial_call=True # <--- ENSURE THIS IS UNCOMMENTED AND ACTIVE!
-                                 # This prevents the callback from firing before initial inputs are set.
-                                 # Then, it will only fire on subsequent changes.
-
+        prevent_initial_call=True
     )
-    
-    def update_map_markers(selected_measurement, selected_time_period):
-        log_prefix = "[UPDATE-MAP-MARKERS]"
-        print(f"{log_prefix} Triggered with: {selected_measurement}, {selected_time_period}")
+    def update_map_marker_data_store(selected_measurement, selected_time_period):
+        log_prefix = "[UPDATE-MAP-DATA-STORE]"
+        print(f"{log_prefix}: Triggered with: Measurement='{selected_measurement}', TimePeriod='{selected_time_period}'")
+
         if not selected_measurement or not selected_time_period:
-            # Returning empty list clears existing markers
+            print(f"{log_prefix}: Inputs incomplete. Storing empty data.")
             return []
 
         markers = process_map_data_2(selected_measurement, selected_time_period)
 
         if not markers:
-            print(f"{log_prefix} No markers returned by process_map_data_2. Clearing map.")
-            return [] # Ensure it clears if data processing yields nothing
+            print(f"{log_prefix}: No markers with valid data. Storing empty data.")
+            return []
 
-        print(f"{log_prefix} Returning {len(markers)} markers.")
+        print(f"{log_prefix}: Storing {len(markers)} markers in dcc.Store.")
         return markers
 
-    # --- Callbacks for Datasets Page ---    
+    # NEW CALLBACK: To render/clear the entire map overlay based on stored data
+    # Fix the callback name (missing 'y' in 'dynamically')
+@app.callback(
+    Output("dynamic-map-overlay-container", "children"),
+    Input("map-marker-data-store", "data"),
+    prevent_initial_call=True
+)
+def render_map_overlay_dynamically(stored_markers_data):
+    log_prefix = "[RENDER-MAP-OVERLAY-DYNAMICALLY]"
+    
+    if not stored_markers_data or len(stored_markers_data) == 0:
+        # Return an empty LayerGroup to clear the map
+        return dl.LayerGroup(children=[])
+    
+    # Return the overlay with markers
+    return dl.LayersControl(
+        children=[
+            dl.Overlay(
+                dl.LayerGroup(children=stored_markers_data, id="marker-layer"),
+                name="Sites",
+                checked=True,
+            )
+        ]
+    )
+
+    # ... (rest of your callbacks for Datasets Page)
+    # --- Callbacks for Datasets Page --- (No Change)
     @app.callback(
         Output('dataset-site-dropdown', 'options'),
         Output('dataset-site-dropdown', 'value'),
@@ -160,7 +190,7 @@ def register_callbacks(app):
         State('dataset-measurement-dropdown', 'value'),
         State('dataset-date-range-picker', 'start_date'),
         State('dataset-date-range-picker', 'end_date'),
-        State('dataset-site-dropdown', 'value'), # Move this to the correct position
+        State('dataset-site-dropdown', 'value'),
         prevent_initial_call=True
     )
     def load_dataset(n_clicks, selected_measurement, start_date, end_date, selected_sites):
@@ -172,7 +202,6 @@ def register_callbacks(app):
 
         if not MEASUREMENTS_FOR_MAPS_AND_DATASETS:
             return (dbc.Alert("Site and measurement data not loaded. Check Hilltop connection.", color="danger"), True, None)
-
 
         combined_df, data_found = get_dataset_data_for_display(
             selected_measurement, selected_sites, start_date, end_date
@@ -198,7 +227,6 @@ def register_callbacks(app):
         if not n_clicks or not stored_data:
             raise dash.exceptions.PreventUpdate
         df = pd.read_json(io.StringIO(stored_data), orient='split')
-        # df = pd.read_json(stored_data, orient='split')
         filename = f"{selected_measurement.replace(' ', '_').replace('(', '').replace(')', '')}_data.csv"
         print(f"Preparing to download {filename} with {len(df)} rows.")
         return dcc.send_data_frame(df.to_csv, filename=filename)

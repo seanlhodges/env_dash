@@ -262,14 +262,17 @@ def serve_quick_reference_air_quality_report_layout():
         html.P("This page would eventually display graphs and tables of common air pollutants (e.g., PM10, PM2.5).")
     ])
 
+# layout.py
+
+# ... (imports and serve_header_layout, serve_sidebar_layout)
 
 def serve_map_page_layout():
     """Returns the layout for the Maps page."""
     measurement_options = [{'label': k, 'value': k} for k in MEASUREMENTS_FOR_MAPS_AND_DATASETS.keys()]
-    
+
     return html.Div([
         html.H3("Environmental Data Maps"),
-        
+
         dbc.Row([
             dbc.Col(
                 dbc.FormFloating([
@@ -297,7 +300,7 @@ def serve_map_page_layout():
                 md=4
             )
         ], className="mb-4"),
-        
+
         dcc.Loading(
             id="loading-map",
             type="circle",
@@ -308,24 +311,20 @@ def serve_map_page_layout():
                     zoom=DEFAULT_MAP_ZOOM,
                     children=[
                         dl.TileLayer(),
-                        dl.LayersControl([
-                            dl.Overlay(
-                                dl.LayerGroup(id="marker-layer"),
-                                name="Sites",
-                                checked=True
-                            )
-                        ])
+                        # This is the target for the callback, it will receive the dl.Overlay
+                        html.Div(id="dynamic-map-overlay-container"),
                     ],
                     style={'width': '100%', 'height': '600px', 'margin': "auto", "display": "block"}
                 )
             ]
         ),
+        dcc.Store(id='map-marker-data-store'), # Store to hold processed marker data (used by the logic, but not directly rendered by this new approach)
 
         html.Hr(),
         html.P("Map legend goes here: e.g., Red = High, Orange = Medium, Green = Low")
     ])
-
-
+    
+        
 def serve_datasets_page_layout():
     """Returns the layout for the Datasets page."""
     measurement_options = [{'label': k, 'value': k} for k in MEASUREMENTS_FOR_MAPS_AND_DATASETS.keys()]

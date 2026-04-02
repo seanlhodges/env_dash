@@ -4,6 +4,7 @@ import dash
 from dash import Input, Output, State, html, dcc, ctx, no_update
 import dash_bootstrap_components as dbc
 from datetime import datetime, timedelta
+import pandas as pd
 
 # Import custom modules
 from layout import serve_header_layout, serve_sidebar_layout, CONTENT_STYLE
@@ -44,7 +45,7 @@ try:
         "Hourly Rainfall (mm)": {
             "hilltop_measurement_name": "Rainfall",# [Rainfall]",
             "is_incremental": True,
-            "sites": rainfall_site_data,
+            "sites": pd.DataFrame(rainfall_site_data) if rainfall_site_data else pd.DataFrame(),  # Convert to DataFrame,
             "interval": "1 hour",
             "method": "Total",
             "measures": "Rainfall,Rainfall SCADA",
@@ -52,7 +53,7 @@ try:
         "Daily Rainfall (mm)": {
             "hilltop_measurement_name": "Rainfall",# [Rainfall]",
             "is_incremental": True,
-            "sites": rainfall_site_data,
+            "sites": pd.DataFrame(rainfall_site_data) if rainfall_site_data else pd.DataFrame(),  # Convert to DataFrame,
             "interval": "1 day",
             "method": "Total",
             "measures": "Rainfall,Rainfall SCADA",
@@ -60,7 +61,7 @@ try:
         "River Stage (m)": {
             "hilltop_measurement_name": "Stage",# [Water Level]",
             "is_incremental": False,
-            "sites": stage_site_data,
+            "sites": pd.DataFrame(stage_site_data) if stage_site_data else pd.DataFrame(),  # Convert to DataFrame,
             "interval": "",
             "method": "",
             "measures": "Stage",
@@ -68,7 +69,7 @@ try:
         "River Flow (m³/s)": {
             "hilltop_measurement_name": "Flow",# [Water Level]",
             "is_incremental": False,
-            "sites": flow_site_data,
+            "sites": pd.DataFrame(flow_site_data) if flow_site_data else pd.DataFrame(),  # Convert to DataFrame,
             "interval": "",
             "method": "",
             "measures": "Flow",
@@ -76,7 +77,7 @@ try:
         "Water Temperature (°C)": {
             "hilltop_measurement_name": "Water Temperature",# [Water temperature (Continuous)]",
             "is_incremental": False,
-            "sites": water_temperature_site_data,
+            "sites": pd.DataFrame(water_temperature_site_data) if water_temperature_site_data else pd.DataFrame(),  # Convert to DataFrame,
             "interval": "",
             "method": "",
             "measures": "Water Temperature (Continuous)",
@@ -84,7 +85,7 @@ try:
         "Air Temperature (°C)": {
             "hilltop_measurement_name": "Air Temperature",# [Air temperature (Continuous)]",
             "is_incremental": False,
-            "sites": air_temperature_site_data,
+            "sites": pd.DataFrame(air_temperature_site_data) if air_temperature_site_data else pd.DataFrame(),  # Convert to DataFrame,
             "interval": "",
             "method": "",
             "measures": "Air Temperature (Continuous)",

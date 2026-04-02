@@ -323,7 +323,7 @@ def process_map_data(selected_measurement, selected_time_period):
         if value is not None:
             color = 'green' # Default color
             # Adjust color based on measurement type and value (dummy thresholds)
-            if selected_measurement == "Rainfall (mm)":
+            if selected_measurement in ["Hourly Rainfall (mm)", "Daily Rainfall (mm)", "Rainfall (mm)"]:
                 if value > 50: color = 'red'
                 elif value > 10: color = 'orange'
             elif selected_measurement == "River Flow (m³/s)":
@@ -551,8 +551,13 @@ def process_map_data_2(selected_measurement, selected_time_period):
     )
     
     if df_fetched_raw.empty:
-        if verbose: print(f"{log_prefix}: No raw data fetched for {selected_measurement}. Returning empty markers.")
-        return map_markers
+    if verbose: 
+        print(f"{log_prefix}: No raw data fetched for {selected_measurement}. Showing sites without data.")
+    # Instead of returning empty, show all sites with grey markers
+    sites_without_data = sites_base_df.copy()
+    sites_without_data['M1'] = None
+    sites_dict = sites_without_data.to_dict(orient='records')
+    # Continue processing to show grey markers for all sites
 
     if verbose:
         print(f"{log_prefix}: Raw fetched data columns: {df_fetched_raw.columns.tolist()}")
@@ -614,35 +619,39 @@ def process_map_data_2(selected_measurement, selected_time_period):
         
         if verbose: print(f"{log_prefix}: Processing site '{site_name}'. Raw value from merged DF: {value}")
 
-        if pd.isna(value): # Explicitly check for NaN using pd.isna
-            color = 'grey'
-            radius = 4
-            popup_content = f"<b>{site_name}</b><br>No recent data for {selected_measurement}."
-            if verbose: print(f"{log_prefix}: Site '{site_name}': No data (NaN), using grey marker.")
-        else:
-            radius = 8
-            color = 'green' # Default color
-            
-            # Your existing color logic
-            if selected_measurement == "Hourly Rainfall (mm)" or selected_measurement == "Daily Rainfall (mm)":
-                if value > 50: color = 'red'
-                elif value > 10: color = 'orange'
-            elif selected_measurement == "River Flow (m³/s)":
-                if value > 100: color = 'red'
-                elif value > 50: color = 'orange'
-            elif selected_measurement == "Water Temperature (°C)":
-                if value > 25: color = 'red'
-                elif value > 15: color = 'orange'
-            elif selected_measurement == "Air Temperature (°C)":
-                if value > 24: color = 'red'
-                elif value > 10: color = 'orange'
-            elif selected_measurement == "River Stage (m)":
-                if value > 7: color = 'red'
-                elif value > 3: color = 'orange'
-            
-            popup_content = f"<b>{site_name}</b><br>{selected_measurement}: {value:.1f} (Latest)"
-            if verbose: print(f"{log_prefix}: Site: '{site_name}', Data: {value:.1f}, color: {color}.")
+        # **CRITICAL CHANGE: ONLY GENERATE A MARKER IF THERE IS VALID DATA FOR THE SELECTED MEASUREMENT**
+        if pd.isna(value):
+            if verbose: print(f"{log_prefix}: Site '{site_name}': No VALID data (NaN) for {selected_measurement}. Skipping marker creation.")
+            continue # <--- THIS IS THE KEY CHANGE: Skip this site if value is NaN
         
+        # If we reach here, 'value' is not NaN, so it's valid data for the current measurement
+        radius = 8
+        color = 'green' # Default color
+    
+        # Colouring points
+        if selected_measurement == "Hourly Rainfall (mm)" or selected_measurement == "Daily Rainfall (mm)":
+            if value > 50: color = 'red'
+            elif value > 10: color = 'orange'
+        elif selected_measurement == "River Flow (m³/s)":
+            if value > 100: color = 'red'
+            elif value > 50: color = 'orange'
+        elif selected_measurement == "Water Temperature (°C)":
+            if value > 25: color = 'red'
+            elif value > 15: color = 'orange'
+        elif selected_measurement == "Air Temperature (°C)":
+            if value > 24: color = 'red'
+            elif value > 10: color = 'orange'
+        elif selected_measurement == "River Stage (m)":
+            if value > 7: color = 'red'
+            elif value > 3: color = 'orange'
+        
+        popup_content = f"<b>{site_name}</b><br>{selected_measurement}: {value:.1f} (Latest)"
+        if verbose: print(f"{log_prefix}: Site: '{site_name}', Data: {value:.1f}, color: {color}.")
+
+        # **NEW CRITICAL CHANGE: Add a unique key to each CircleMarker**
+        # This forces React/Dash to treat each marker as a new element on every render
+        marker_key = f"{site_name}-{selected_measurement}-{selected_time_period}"
+    
         # print(f"{log_prefix}: Map markers: {map_markers}")
         map_markers.append(
             dl.CircleMarker(
@@ -651,10 +660,11 @@ def process_map_data_2(selected_measurement, selected_time_period):
                 color=color,
                 fillColor=color,
                 fillOpacity=0.8,
-                children=[dl.Popup(content=popup_content)]
+                children=[dl.Popup(content=popup_content)],
+                key=marker_key # <--- ADD THIS LINE HERE
             )
         )
-    
+    if verbose: print(f"{log_prefix}: Returning {len(map_markers)} markers for {selected_measurement}")
     if verbose: print(f"{log_prefix} --- END PROCESSING FOR: {selected_measurement} ---")
     return map_markers
 
