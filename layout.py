@@ -312,6 +312,10 @@ def serve_map_page_layout():
                     children=[
                         dl.TileLayer(),
                         # This is the target for the callback, it will receive the dl.Overlay
+                        dl.LayersControl(
+                            [dl.Overlay(dl.LayerGroup(id="marker-layer-placeholder"), name="Sites", checked=True)],
+                            id="layers-control"
+                        ),
                         html.Div(id="dynamic-map-overlay-container"),
                     ],
                     style={'width': '100%', 'height': '600px', 'margin': "auto", "display": "block"}

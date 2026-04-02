@@ -125,10 +125,10 @@ def register_callbacks(app):
 
     # Callback to process data and store it in dcc.Store (remains unchanged)
     @app.callback(
-        Output("map-marker-data-store", "data"), # Output to the dcc.Store
+        Output("map-marker-data-store", "data"),
+        Output("loading-map", "children"),  # Add loading output
         Input("map-measurement-dropdown", "value"),
-        Input("map-time-period-dropdown", "value"),
-        prevent_initial_call=True
+        Input("map-time-period-dropdown", "value")
     )
     def update_map_marker_data_store(selected_measurement, selected_time_period):
         log_prefix = "[UPDATE-MAP-DATA-STORE]"
@@ -142,35 +142,27 @@ def register_callbacks(app):
 
         if not markers:
             print(f"{log_prefix}: No markers with valid data. Storing empty data.")
-            return []
+            return [], dash.no_update
 
         print(f"{log_prefix}: Storing {len(markers)} markers in dcc.Store.")
-        return markers
+        return markers, dash.no_update
 
     # NEW CALLBACK: To render/clear the entire map overlay based on stored data
     # Fix the callback name (missing 'y' in 'dynamically')
-@app.callback(
-    Output("dynamic-map-overlay-container", "children"),
-    Input("map-marker-data-store", "data"),
-    prevent_initial_call=True
-)
-def render_map_overlay_dynamically(stored_markers_data):
-    log_prefix = "[RENDER-MAP-OVERLAY-DYNAMICALLY]"
-    
-    if not stored_markers_data or len(stored_markers_data) == 0:
-        # Return an empty LayerGroup to clear the map
-        return dl.LayerGroup(children=[])
-    
-    # Return the overlay with markers
-    return dl.LayersControl(
-        children=[
-            dl.Overlay(
-                dl.LayerGroup(children=stored_markers_data, id="marker-layer"),
-                name="Sites",
-                checked=True,
-            )
-        ]
+    @app.callback(
+        Output("dynamic-map-overlay-container", "children"),
+        Input("map-marker-data-store", "data"),
+        prevent_initial_call=True
     )
+    def render_map_overlay_dynamically(stored_markers_data):
+        log_prefix = "[RENDER-MAP-OVERLAY-DYNAMICALLY]"
+        
+        if not stored_markers_data or len(stored_markers_data) == 0:
+            # Return an empty LayerGroup to clear the map
+            return None
+        
+        # Return the overlay with markers
+        return dl.LayerGroup(children=stored_markers_data, id="marker-layer")
 
     # ... (rest of your callbacks for Datasets Page)
     # --- Callbacks for Datasets Page --- (No Change)

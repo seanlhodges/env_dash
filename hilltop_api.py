@@ -408,6 +408,8 @@ def fetch_data_table_for_custom_collection(
     if verbose:
         print(f"{log_prefix}: Response status -> {response}")
     # print(response.text)
+    
+    
     xml_content = response.text
 
 
@@ -430,7 +432,9 @@ def fetch_data_table_for_custom_collection(
     for col in df.columns:
         if col.startswith("M"):
             df[col] = pd.to_numeric(df[col], errors='coerce')
+   
+    if verbose:
+        print(f"{log_prefix}: Columns returned: {df.columns.tolist()}")
+        print(f"{log_prefix}: First row: {df.iloc[0].to_dict()}")
             
-
-
     return df
