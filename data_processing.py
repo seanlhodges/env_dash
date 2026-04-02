@@ -424,23 +424,23 @@ def process_map_data_2(selected_measurement, selected_time_period):
     )
     
     if df_fetched_raw.empty:
-    if verbose: 
-        print(f"{log_prefix}: No raw data fetched for {selected_measurement}. Showing sites without data.")
-    
-        # Create markers for all sites with no data (grey)
-        for _, site in sites_base_df.iterrows():
-            map_markers.append(
-                dl.CircleMarker(
-                    center=[site['Latitude'], site['Longitude']],
-                    radius=4,
-                    color='grey',
-                    fillColor='grey',
-                    fillOpacity=0.5,
-                    children=[dl.Popup(content=f"<b>{site['SiteName']}</b><br>No data available")],
-                    key=f"{site['SiteName']}-no-data"
+        if verbose: 
+            print(f"{log_prefix}: No raw data fetched for {selected_measurement}. Showing sites without data.")
+        
+            # Create markers for all sites with no data (grey)
+            for _, site in sites_base_df.iterrows():
+                map_markers.append(
+                    dl.CircleMarker(
+                        center=[site['Latitude'], site['Longitude']],
+                        radius=4,
+                        color='grey',
+                        fillColor='grey',
+                        fillOpacity=0.5,
+                        children=[dl.Popup(content=f"<b>{site['SiteName']}</b><br>No data available")],
+                        key=f"{site['SiteName']}-no-data"
+                    )
                 )
-            )
-        return map_markers  # Return early with grey markers
+            return map_markers  # Return early with grey markers
     
     # Continue processing to show grey markers for all sites
 
